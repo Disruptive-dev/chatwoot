@@ -1,7 +1,7 @@
 # Dockerfile robusto para OptimIA - Versión Disruptive SW
 FROM ruby:3.4.4-slim as base
 
-# Instalación de dependencias de sistema (Debian style)
+# Instalación de dependencias de sistema
 RUN apt-get update -qq && apt-get install -y \
     build-essential \
     libpq-dev \
@@ -10,7 +10,7 @@ RUN apt-get update -qq && apt-get install -y \
     libvips-dev \
     pkg-config
 
-# Instalar Node.js y Yarn (fundamentales para los logos y el frontend)
+# Instalar Node.js y Yarn
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     npm install --global yarn
@@ -24,8 +24,18 @@ RUN bundle install --jobs 4 --retry 3
 # Copiar el resto de la aplicación
 COPY . .
 
-# Precompilación de assets (Aquí es donde se "pega" tu logo de OptimIA)
-RUN RAILS_ENV=production bundle exec rails assets:precompile
+# --- SECCIÓN CRÍTICA PARA OPTIMIA ---
+# Capturamos las variables que manda EasyPanel para que el build no falle
+ARG SECRET_KEY_BASE
+ARG FRONTEND_URL
+ENV SECRET_KEY_BASE=$SECRET_KEY_BASE
+ENV FRONTEND_URL=$FRONTEND_URL
+ENV RAILS_ENV=production
+ENV NODE_ENV=production
+
+# Precompilación de assets (Aquí es donde nace tu marca OptimIA)
+RUN bundle exec rails assets:precompile
+# ------------------------------------
 
 # Comando de inicio
 CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
