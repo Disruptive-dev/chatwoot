@@ -1,5 +1,5 @@
 # Dockerfile oficial para Chatwoot - Optimizado para OptimIA
-FROM ruby:3.4-alpine as base
+FROM ruby:3.4.4-alpine as base
 
 # Instalación de dependencias de sistema
 RUN apk add --update --no-cache \
