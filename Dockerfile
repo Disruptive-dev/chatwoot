@@ -1,4 +1,4 @@
-# Dockerfile definitivo para OptimIA - Versión Disruptive SW
+# Dockerfile PRO para OptimIA - Disruptive SW Standard
 FROM ruby:3.4.4-slim as base
 
 # Instalación de dependencias de sistema
@@ -10,27 +10,25 @@ RUN apt-get update -qq && apt-get install -y \
     libvips-dev \
     pkg-config
 
-# Instalar Node.js y las herramientas de gestión (pnpm es la clave aquí)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+# Instalamos Node.js 24 (el que pide tu proyecto) y pnpm
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
     apt-get install -y nodejs && \
     npm install --global pnpm
 
 WORKDIR /app
 
-# Instalación de gemas de Ruby (Esto ya está en caché, será rápido)
+# Instalación de gemas (Esto vuela porque está en caché)
 COPY Gemfile Gemfile.lock ./
 RUN bundle install --jobs 4 --retry 3
 
-# --- SECCIÓN FRONTEND PARA OPTIMIA ---
-# Instalamos las dependencias de diseño (Vite, Vue, etc.)
+# Dependencias de diseño
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile
-# ------------------------------------
 
 # Copiar el resto de la aplicación
 COPY . .
 
-# --- SECCIÓN DE COMPILACIÓN FINAL ---
+# --- SECCIÓN DE ALTO RENDIMIENTO ---
 ARG SECRET_KEY_BASE
 ARG FRONTEND_URL
 ENV SECRET_KEY_BASE=$SECRET_KEY_BASE
@@ -38,7 +36,10 @@ ENV FRONTEND_URL=$FRONTEND_URL
 ENV RAILS_ENV=production
 ENV NODE_ENV=production
 
-# Aquí es donde se hornean tus logos de OptimIA
+# ¡ESTA ES LA LLAVE! Le damos 4GB de RAM a Node para que no se ahogue
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
+# Horneado final de OptimIA
 RUN bundle exec rails assets:precompile
 # ------------------------------------
 
