@@ -1,16 +1,19 @@
-# Dockerfile oficial para Chatwoot - Optimizado para OptimIA
-FROM ruby:3.4.4-alpine as base
+# Dockerfile robusto para OptimIA - Versión Disruptive SW
+FROM ruby:3.4.4-slim as base
 
-# Instalación de dependencias de sistema
-RUN apk add --update --no-cache \
-    build-base \
-    postgresql-dev \
+# Instalación de dependencias de sistema (Debian style)
+RUN apt-get update -qq && apt-get install -y \
+    build-essential \
+    libpq-dev \
     git \
-    nodejs \
-    yarn \
-    tzdata \
-    imagemagick \
-    vips-dev
+    curl \
+    libvips-dev \
+    pkg-config
+
+# Instalar Node.js y Yarn (fundamentales para los logos y el frontend)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install --global yarn
 
 WORKDIR /app
 
