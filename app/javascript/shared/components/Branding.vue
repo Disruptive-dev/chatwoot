@@ -65,7 +65,7 @@ export default {
       <img
         class="ltr:mr-1 rtl:ml-1 max-w-3 max-h-3"
         :alt="globalConfig.brandName"
-        src="/brand-assets/logo.svg"
+        :src="'/brand-assets/logo.svg'"
       />
       <span>
         {{ replaceInstallationName($t('POWERED_BY')) }}
