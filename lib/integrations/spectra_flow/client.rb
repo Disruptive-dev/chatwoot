@@ -12,8 +12,9 @@ module Integrations
       SENDABLE_PATH = '/api/optimia/documents/sendable'
       SENSITIVE_KEYS = %w[
         tenant_id storage_path file_path provider download_url
-        created_by internal_id token expires_at
+        created_by internal_id expires_at
       ].freeze
+      DOWNLOAD_TOKEN_KEYS = %w[token item_id expires_at].freeze
 
       def initialize(account:)
         @account = account
@@ -40,7 +41,7 @@ module Integrations
           return error_result('Invalid document id', status: 422, error_code: 'invalid_document_id')
         end
 
-        request_json(:post, "/api/optimia/documents/#{cleaned_id}/download-token", body: {})
+        request_json(:post, "/api/optimia/documents/#{cleaned_id}/download-token", body: {}, sanitize: :download_token)
       end
 
       def download(item_id, token)
@@ -238,21 +239,22 @@ module Integrations
         end
       end
 
-      def request_json(method, path, query: {}, body: nil)
+      def request_json(method, path, query: {}, body: nil, sanitize: :default)
         started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         url = request_url(path)
         host = safe_host(@api_base_url)
 
         response = perform_http(method, url, query: query, body: body)
         duration_ms = elapsed_ms(started)
-        result = parse_json_response(response)
+        result = parse_json_response(response, sanitize: sanitize)
 
         log_request(
           host: host,
           path: path,
           status: result[:status],
           duration_ms: duration_ms,
-          error_class: result[:error].present? ? 'UpstreamError' : nil
+          error_class: result[:error].present? ? 'UpstreamError' : nil,
+          document_id: extract_document_id(path)
         )
 
         result
@@ -273,14 +275,23 @@ module Integrations
         response = self.class.get(
           url,
           query: query,
-          headers: auth_headers,
+          headers: download_headers,
           format: :plain,
           timeout: DEFAULT_TIMEOUT
         )
 
         duration_ms = elapsed_ms(started)
         result = parse_download_response(response)
-        log_request(host: safe_host(@api_base_url), path: path, status: result[:status], duration_ms: duration_ms)
+        log_request(
+          host: safe_host(@api_base_url),
+          path: path,
+          status: result[:status],
+          duration_ms: duration_ms,
+          document_id: extract_document_id(path),
+          mime_type: result.dig(:data, :content_type),
+          file_size: result.dig(:data, :body)&.bytesize,
+          filename: result.dig(:data, :filename)
+        )
         result
       rescue Net::OpenTimeout, Net::ReadTimeout
         timeout_result
@@ -317,7 +328,14 @@ module Integrations
         }
       end
 
-      def parse_json_response(response)
+      def download_headers
+        {
+          'Authorization' => "Bearer #{@bearer_token}",
+          'Accept' => '*/*'
+        }
+      end
+
+      def parse_json_response(response, sanitize: :default)
         unless response.success?
           return error_result(
             extract_error_detail(response),
@@ -335,7 +353,7 @@ module Integrations
           )
         end
 
-        { data: sanitize_payload(parsed), status: response.code }
+        { data: sanitize_payload(parsed, mode: sanitize), status: response.code }
       rescue JSON::ParserError
         error_result(
           'Spectra Flow returned invalid JSON payload',
@@ -401,7 +419,7 @@ module Integrations
         end
       end
 
-      def log_request(host:, path:, status:, duration_ms:, error_class: nil)
+      def log_request(host:, path:, status:, duration_ms:, error_class: nil, document_id: nil, mime_type: nil, file_size: nil, filename: nil)
         Rails.logger.info(
           {
             event: 'spectra_flow_request',
@@ -411,16 +429,24 @@ module Integrations
             status: status,
             duration_ms: duration_ms,
             error_class: error_class,
+            document_id: document_id,
+            mime_type: mime_type,
+            file_size: file_size,
+            filename: filename,
             config_api_url_source: @config_sources[:api_url_source],
             config_token_source: @config_sources[:token_source],
             token_configured: @config_sources[:token_configured]
-          }.to_json
+          }.compact.to_json
         )
       end
 
-      def sanitize_payload(payload)
+      def sanitize_payload(payload, mode: :default)
         case payload
         when Hash
+          if mode == :download_token
+            return payload.slice(*DOWNLOAD_TOKEN_KEYS)
+          end
+
           payload.deep_dup.tap do |copy|
             strip_sensitive_keys!(copy)
             sanitize_items!(copy)
@@ -471,8 +497,19 @@ module Integrations
       def extract_filename(content_disposition)
         return 'documento' if content_disposition.blank?
 
-        match = content_disposition.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i)
-        (match && match[1]) ? match[1].strip : 'documento'
+        match = content_disposition.match(/filename\*=UTF-8''([^;]+)/i)
+        return URI.decode_www_form_component(match[1].strip) if match
+
+        match = content_disposition.match(/filename="([^"]+)"/i)
+        return match[1].strip if match
+
+        match = content_disposition.match(/filename=([^;]+)/i)
+        (match && match[1]) ? match[1].strip.delete('"') : 'documento'
+      end
+
+      def extract_document_id(path)
+        match = path.to_s.match(%r{/documents/([\w-]+)})
+        match ? match[1] : nil
       end
 
       def safe_host(url)

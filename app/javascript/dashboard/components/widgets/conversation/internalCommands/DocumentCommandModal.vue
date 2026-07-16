@@ -118,7 +118,7 @@ export default {
     },
     resolveAttachError(error) {
       const status = error?.response?.status;
-      const message = error?.response?.data?.error;
+      const message = this.parseErrorMessage(error);
 
       if (status === 403) {
         if (message && /expir/i.test(message)) {
@@ -162,6 +162,84 @@ export default {
         message ||
         this.$t('CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_ATTACH')
       );
+    },
+    parseErrorMessage(error) {
+      const data = error?.response?.data;
+      if (!data) return '';
+
+      if (typeof data === 'string') return data;
+
+      if (typeof Blob !== 'undefined' && data instanceof Blob) {
+        return '';
+      }
+
+      return data.error || data.detail || '';
+    },
+    async parseBlobError(error) {
+      const data = error?.response?.data;
+      if (!(typeof Blob !== 'undefined' && data instanceof Blob)) {
+        return error;
+      }
+
+      try {
+        const text = await data.text();
+        const parsed = JSON.parse(text);
+        if (error.response) {
+          error.response.data = parsed;
+        }
+      } catch (_parseError) {
+        // Mantener error original si el blob no es JSON.
+      }
+      return error;
+    },
+    buildFileFromDownload(response, document) {
+      const blob = response.data;
+      if (!blob || blob.size <= 0) {
+        throw new Error('empty_download');
+      }
+
+      const fileName = this.resolveFileName(document);
+      const mimeType =
+        document.mime_type || blob.type || 'application/octet-stream';
+      const file = new File([blob], fileName, { type: mimeType });
+
+      return {
+        name: fileName,
+        type: mimeType,
+        size: file.size,
+        file,
+      };
+    },
+    async requestDownloadToken(documentId, retried = false) {
+      const { data: tokenData } =
+        await SpectraDocumentsAPI.createDownloadToken(documentId);
+
+      if (!tokenData?.token) {
+        const err = new Error('missing_download_token');
+        err.response = {
+          status: 422,
+          data: { error: 'No se pudo preparar el documento seleccionado.' },
+        };
+        throw err;
+      }
+
+      try {
+        const response = await SpectraDocumentsAPI.downloadDocument(
+          documentId,
+          tokenData.token
+        );
+        return response;
+      } catch (error) {
+        const parsed = await this.parseBlobError(error);
+        const status = parsed?.response?.status;
+        const message = this.parseErrorMessage(parsed);
+
+        if (!retried && status === 403 && /expir/i.test(message)) {
+          return this.requestDownloadToken(documentId, true);
+        }
+
+        throw parsed;
+      }
     },
     async fetchDocuments() {
       try {
@@ -213,30 +291,21 @@ export default {
 
       try {
         this.isAttaching = true;
-        const { data: tokenData } =
-          await SpectraDocumentsAPI.createDownloadToken(document.id);
-        const response = await SpectraDocumentsAPI.downloadDocument(
-          document.id,
-          tokenData.token
-        );
-
-        const blob = response.data;
-        const fileName = this.resolveFileName(document);
-        const mimeType =
-          document.mime_type || blob.type || 'application/octet-stream';
-        const file = new File([blob], fileName, { type: mimeType });
+        const response = await this.requestDownloadToken(document.id);
+        const filePayload = this.buildFileFromDownload(response, document);
 
         this.$emit('select', {
-          file: {
-            name: fileName,
-            type: mimeType,
-            size: file.size,
-            file,
-          },
+          file: filePayload,
           document,
         });
         this.onClose();
       } catch (error) {
+        if (error?.message === 'empty_download') {
+          useAlert(
+            this.$t('CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_NOT_FOUND')
+          );
+          return;
+        }
         useAlert(this.resolveAttachError(error));
       } finally {
         this.isAttaching = false;

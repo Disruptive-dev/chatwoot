@@ -121,6 +121,44 @@ RSpec.describe Integrations::SpectraFlow::Client do
       expect(result[:error_code]).to eq('spectra_timeout')
     end
 
+    it 'preserves download token in create_download_token response' do
+      client = described_class.new(account: account)
+      response = instance_double(
+        HTTParty::Response,
+        success?: true,
+        code: 200,
+        parsed_response: {
+          'token' => 'temp-download-token',
+          'item_id' => 'doc-1',
+          'expires_at' => '2026-07-16T12:00:00Z',
+          'tenant_id' => 'secret-tenant'
+        }
+      )
+
+      expect(described_class).to receive(:post).with(
+        'https://spectra.example.com/api/optimia/documents/doc-1/download-token',
+        hash_including(headers: hash_including('Authorization' => 'Bearer tenant-token'))
+      ).and_return(response)
+
+      result = client.create_download_token('doc-1')
+      expect(result[:status]).to eq(200)
+      expect(result[:data]['token']).to eq('temp-download-token')
+      expect(result[:data]['item_id']).to eq('doc-1')
+      expect(result[:data]).not_to have_key('tenant_id')
+    end
+
+    it 'falls back to SPECTRA_FLOW_INBOX_BEARER_TOKEN env' do
+      blank_account = create(:account, custom_attributes: {})
+      allow(ENV).to receive(:fetch).and_call_original
+      allow(ENV).to receive(:fetch).with('SPECTRA_FLOW_API_URL', nil).and_return('https://flow.example.com')
+      allow(ENV).to receive(:fetch).with('SPECTRA_FLOW_INBOX_BEARER_TOKEN', nil).and_return('spx_live_inbox_token')
+      allow(ENV).to receive(:fetch).with('SPECTRA_FLOW_API_TOKEN', nil).and_return(nil)
+
+      resolution = described_class.resolve_credentials(blank_account)
+      expect(resolution[:bearer_token]).to eq('spx_live_inbox_token')
+      expect(resolution[:sources][:token_source]).to eq('env_inbox_token')
+    end
+
     it 'does not include token in logs' do
       client = described_class.new(account: account)
       response = instance_double(
