@@ -15,11 +15,21 @@ class Integrations::SpectraFlow::DocumentsService
     with_client { |client| client.download(item_id, token) }
   end
 
+  def health_check
+    with_client(&:health_check)
+  end
+
   private
 
   def with_client
-    yield Integrations::SpectraFlow::Client.new(account: account)
+    client = Integrations::SpectraFlow::Client.new(account: account)
+    yield client
   rescue Integrations::SpectraFlow::Client::ConfigurationError => e
-    { error: e.message, status: 503 }
+    Integrations::SpectraFlow::Client.log_configuration_failure(account: account, error: e)
+    {
+      error: e.message,
+      error_code: e.error_code,
+      status: e.http_status
+    }
   end
 end

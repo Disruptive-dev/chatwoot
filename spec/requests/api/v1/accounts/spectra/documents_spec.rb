@@ -29,6 +29,23 @@ RSpec.describe 'Spectra Documents API', type: :request do
       expect(response.body).to include('Contrato')
     end
 
+    it 'maps configuration errors to error_code spectra_not_configured' do
+      allow(service).to receive(:list_sendable).and_return(
+        error: 'Spectra Flow bearer token not configured',
+        error_code: 'spectra_not_configured',
+        status: 503
+      )
+
+      get "/api/v1/accounts/#{account.id}/spectra/documents",
+          headers: agent.create_new_auth_token,
+          as: :json
+
+      expect(response).to have_http_status(:service_unavailable)
+      body = response.parsed_body
+      expect(body['error_code']).to eq('spectra_not_configured')
+      expect(body['error']).to include('todavía no está configurada')
+    end
+
     it 'maps Spectra connection errors to public message' do
       allow(service).to receive(:list_sendable).and_return(
         error: 'timeout',

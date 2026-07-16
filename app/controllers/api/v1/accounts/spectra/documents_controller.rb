@@ -49,19 +49,53 @@ class Api::V1::Accounts::Spectra::DocumentsController < Api::V1::Accounts::BaseC
 
   def render_spectra_result(result)
     if result[:error].present?
-      render json: { error: public_error_message(result) }, status: http_status_for(result[:status])
+      payload = {
+        error: public_error_message(result),
+        error_code: result[:error_code] || infer_error_code(result)
+      }
+      log_public_error(result, payload[:error_code])
+      render json: payload, status: http_status_for(result[:status])
     else
       render json: result[:data], status: :ok
     end
   end
 
+  def infer_error_code(result)
+    Integrations::SpectraFlow::Errors.error_code_for_status(result[:status])
+  end
+
+  def log_public_error(result, error_code)
+    Rails.logger.warn(
+      {
+        event: 'spectra_documents_proxy_error',
+        account_id: Current.account.id,
+        error_code: error_code,
+        upstream_status: result[:status],
+        internal_message: result[:error]
+      }.to_json
+    )
+  end
+
   def public_error_message(result)
+    case result[:error_code]
+    when 'spectra_not_configured'
+      return 'La conexión con Spectra todavía no está configurada.'
+    when 'spectra_authentication_failed'
+      return 'La credencial de Spectra no es válida o venció.'
+    when 'spectra_timeout'
+      return 'Spectra tardó demasiado en responder.'
+    when 'spectra_forbidden'
+      return 'No tenés permisos para consultar documentos.'
+    when 'spectra_endpoint_not_found'
+      return 'No se pudo conectar con Spectra.'
+    end
+
     status = result[:status].to_i
     detail = result[:error].to_s
 
     case status
     when 401
-      'No se pudo conectar con Spectra.'
+      'La credencial de Spectra no es válida o venció.'
     when 403
       if detail.match?(/token|expir/i)
         'El acceso temporal al documento expiró. Intentá nuevamente.'
@@ -78,8 +112,14 @@ class Api::V1::Accounts::Spectra::DocumentsController < Api::V1::Accounts::BaseC
       else
         'No se pudo preparar el documento seleccionado.'
       end
-    when 502, 503, 504
-      'No se pudo conectar con Spectra.'
+    when 504
+      'Spectra tardó demasiado en responder.'
+    when 502, 503
+      if detail.match?(/not configured|token not configured|URL not configured/i)
+        'La conexión con Spectra todavía no está configurada.'
+      else
+        'No se pudo conectar con Spectra.'
+      end
     else
       'No se pudo conectar con Spectra.'
     end
@@ -87,6 +127,8 @@ class Api::V1::Accounts::Spectra::DocumentsController < Api::V1::Accounts::BaseC
 
   def http_status_for(code)
     code = code.to_i
+    return :service_unavailable if code == 503
+    return :gateway_timeout if code == 504
     return :bad_gateway unless code.between?(400, 599)
 
     code

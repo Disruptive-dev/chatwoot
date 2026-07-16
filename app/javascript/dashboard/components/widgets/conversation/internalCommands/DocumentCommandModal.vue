@@ -62,12 +62,34 @@ export default {
       this.debouncedSearch();
     },
     resolveLoadError(error) {
+      const code = error?.response?.data?.error_code;
+      const codeMessages = {
+        spectra_not_configured:
+          'CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_NOT_CONFIGURED',
+        spectra_authentication_failed:
+          'CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_AUTH_FAILED',
+        spectra_timeout:
+          'CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_TIMEOUT',
+        spectra_forbidden:
+          'CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_FORBIDDEN',
+        spectra_endpoint_not_found:
+          'CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_CONNECT',
+        spectra_upstream_unavailable:
+          'CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_CONNECT',
+        spectra_invalid_response:
+          'CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_CONNECT',
+      };
+
+      if (code && codeMessages[code]) {
+        return this.$t(codeMessages[code]);
+      }
+
       const status = error?.response?.status;
       const message = error?.response?.data?.error;
 
       if (status === 401) {
         return this.$t(
-          'CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_CONNECT'
+          'CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_AUTH_FAILED'
         );
       }
       if (status === 403) {
@@ -75,6 +97,14 @@ export default {
           message ||
           this.$t('CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_FORBIDDEN')
         );
+      }
+      if (status === 504) {
+        return this.$t(
+          'CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.ERROR_TIMEOUT'
+        );
+      }
+      if (status === 503 && message) {
+        return message;
       }
       if ([502, 503, 504].includes(status)) {
         return this.$t(

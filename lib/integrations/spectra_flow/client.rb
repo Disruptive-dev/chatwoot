@@ -1,14 +1,15 @@
 # frozen_string_literal: true
 
+require_relative 'errors'
+
 module Integrations
   module SpectraFlow
     class Client
       include HTTParty
 
-      class ConfigurationError < StandardError; end
-
       DEFAULT_TIMEOUT = 15
       MAX_DOWNLOAD_BYTES = 40 * 1024 * 1024
+      SENDABLE_PATH = '/api/optimia/documents/sendable'
       SENSITIVE_KEYS = %w[
         tenant_id storage_path file_path provider download_url
         created_by internal_id token expires_at
@@ -16,69 +17,159 @@ module Integrations
 
       def initialize(account:)
         @account = account
-        @api_base_url = credentials[:api_base_url].to_s.chomp('/')
-        @bearer_token = credentials[:bearer_token].to_s
+        resolution = self.class.resolve_credentials(account)
+        @config_sources = resolution[:sources]
+        @api_base_url = resolution[:api_base_url]
+        @bearer_token = resolution[:bearer_token]
 
-        raise ConfigurationError, 'Spectra Flow API URL not configured' if @api_base_url.blank?
-        raise ConfigurationError, 'Spectra Flow bearer token not configured' if @bearer_token.blank?
-        raise ConfigurationError, 'Spectra Flow API URL is invalid' unless self.class.valid_api_url?(@api_base_url)
+        validate_configuration!(resolution)
       end
 
       def list_sendable(q: '', category: '', tag: '', limit: 100)
-        get_json(
-          '/api/optimia/documents/sendable',
-          query: {
-            q: q,
-            category: category,
-            tag: tag,
-            limit: limit
-          }
-        )
+        request_json(:get, SENDABLE_PATH, query: {
+                       q: q,
+                       category: category,
+                       tag: tag,
+                       limit: limit
+                     })
       end
 
       def create_download_token(item_id)
         cleaned_id = item_id.to_s.strip
         unless cleaned_id.match?(/\A[\w-]+\z/)
-          return { error: 'Invalid document id', status: 422 }
+          return error_result('Invalid document id', status: 422, error_code: 'invalid_document_id')
         end
 
-        post_json("/api/optimia/documents/#{cleaned_id}/download-token", {})
+        request_json(:post, "/api/optimia/documents/#{cleaned_id}/download-token", body: {})
       end
 
       def download(item_id, token)
         cleaned_id = item_id.to_s.strip
         cleaned_token = token.to_s.strip
         if cleaned_id.blank? || cleaned_token.blank?
-          return { error: 'Invalid download request', status: 422 }
+          return error_result('Invalid download request', status: 422, error_code: 'invalid_download_request')
         end
 
-        response = self.class.get(
-          "#{@api_base_url}/api/optimia/documents/#{cleaned_id}/download",
-          query: { token: cleaned_token },
-          headers: auth_headers,
-          format: :plain,
-          timeout: DEFAULT_TIMEOUT
-        )
+        request_download("/api/optimia/documents/#{cleaned_id}/download", query: { token: cleaned_token })
+      end
 
-        parse_download_response(response)
-      rescue Net::OpenTimeout, Net::ReadTimeout, HTTParty::Error, SocketError, Errno::ECONNREFUSED
-        { error: 'Spectra Flow request timeout', status: 502 }
+      def health_check
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        host = safe_host(@api_base_url)
+
+        result = list_sendable(limit: 1)
+        duration_ms = elapsed_ms(started)
+
+        if result[:error].present?
+          {
+            ok: false,
+            status: result[:status],
+            error_code: result[:error_code],
+            duration_ms: duration_ms,
+            host: host,
+            path: SENDABLE_PATH,
+            config_sources: safe_config_sources(@config_sources)
+          }
+        else
+          {
+            ok: true,
+            status: 200,
+            error_code: nil,
+            duration_ms: duration_ms,
+            host: host,
+            path: SENDABLE_PATH,
+            config_sources: safe_config_sources(@config_sources)
+          }
+        end
+      rescue ConfigurationError => e
+        {
+          ok: false,
+          status: e.http_status,
+          error_code: e.error_code,
+          duration_ms: elapsed_ms(started),
+          host: host,
+          path: SENDABLE_PATH,
+          config_sources: safe_config_sources(e.config_sources),
+          error_class: e.class.name
+        }
       end
 
       def self.credentials_for(account)
-        attrs = account.custom_attributes || {}
+        resolve_credentials(account).slice(:api_base_url, :bearer_token)
+      end
 
-        bearer_token = attrs['spectra_flow_bearer_token'].presence ||
-                       GlobalConfigService.load('SPECTRA_FLOW_INBOX_BEARER_TOKEN', nil).presence ||
-                       GlobalConfigService.load('SPECTRA_FLOW_API_TOKEN', nil).presence ||
-                       ENV.fetch('SPECTRA_FLOW_INBOX_BEARER_TOKEN', nil).presence ||
-                       ENV.fetch('SPECTRA_FLOW_API_TOKEN', nil)
+      def self.resolve_credentials(account)
+        attrs = account.custom_attributes || {}
+        sources = {
+          api_url_source: 'missing',
+          token_source: 'missing',
+          token_configured: false
+        }
+
+        api_base_url, api_url_source = resolve_api_url(attrs)
+        bearer_token, token_source = resolve_bearer_token(attrs)
+
+        sources[:api_url_source] = api_url_source
+        sources[:token_source] = token_source
+        sources[:token_configured] = bearer_token.present?
 
         {
-          api_base_url: attrs['spectra_flow_api_url'].presence ||
-            GlobalConfigService.load('SPECTRA_FLOW_API_URL', ENV.fetch('SPECTRA_FLOW_API_URL', nil)),
-          bearer_token: bearer_token
+          api_base_url: normalize_api_base_url(api_base_url),
+          bearer_token: normalize_bearer_token(bearer_token),
+          sources: sources
         }
+      end
+
+      def self.resolve_api_url(attrs)
+        account_url = strip_value(attrs['spectra_flow_api_url'])
+        return [account_url, 'account_custom_attributes'] if account_url.present?
+
+        db_url = strip_value(GlobalConfig.get('SPECTRA_FLOW_API_URL')['SPECTRA_FLOW_API_URL'])
+        return [db_url, 'global_config_api_url'] if db_url.present?
+
+        env_url = strip_value(ENV.fetch('SPECTRA_FLOW_API_URL', nil))
+        return [env_url, 'env_api_url'] if env_url.present?
+
+        ['', 'missing']
+      end
+
+      def self.resolve_bearer_token(attrs)
+        account_token = strip_value(attrs['spectra_flow_bearer_token'])
+        return [account_token, 'account_custom_attributes'] if account_token.present?
+
+        db_inbox = strip_value(GlobalConfig.get('SPECTRA_FLOW_INBOX_BEARER_TOKEN')['SPECTRA_FLOW_INBOX_BEARER_TOKEN'])
+        return [db_inbox, 'global_config_inbox_token'] if db_inbox.present?
+
+        env_inbox = strip_value(ENV.fetch('SPECTRA_FLOW_INBOX_BEARER_TOKEN', nil))
+        return [env_inbox, 'env_inbox_token'] if env_inbox.present?
+
+        db_api = strip_value(GlobalConfig.get('SPECTRA_FLOW_API_TOKEN')['SPECTRA_FLOW_API_TOKEN'])
+        return [db_api, 'global_config_api_token'] if db_api.present?
+
+        env_api = strip_value(ENV.fetch('SPECTRA_FLOW_API_TOKEN', nil))
+        return [env_api, 'env_api_token'] if env_api.present?
+
+        ['', 'missing']
+      end
+
+      def self.strip_value(value)
+        value.to_s.strip.presence
+      end
+
+      def self.normalize_api_base_url(url)
+        base = strip_value(url)
+        return '' if base.blank?
+
+        base = base.chomp('/')
+        base = base.sub(%r{/api\z}i, '') if base.match?(%r{/api\z}i)
+        base.chomp('/')
+      end
+
+      def self.normalize_bearer_token(token)
+        value = strip_value(token)
+        return '' if value.blank?
+
+        value.sub(/\Abearer\s+/i, '')
       end
 
       def self.valid_api_url?(url)
@@ -95,10 +186,128 @@ module Integrations
         sanitized.presence || 'documento'
       end
 
+      def self.log_configuration_failure(account:, error:)
+        Rails.logger.warn(
+          {
+            event: 'spectra_flow_configuration_error',
+            account_id: account.id,
+            error_code: error.error_code,
+            error_class: error.class.name,
+            message: error.message,
+            config_sources: safe_config_sources(error.config_sources)
+          }.to_json
+        )
+      end
+
+      def self.safe_config_sources(sources)
+        sources ||= {}
+        {
+          api_url_source: sources[:api_url_source],
+          token_source: sources[:token_source],
+          token_configured: sources[:token_configured]
+        }
+      end
+
       private
 
-      def credentials
-        self.class.credentials_for(@account)
+      def validate_configuration!(resolution)
+        sources = resolution[:sources]
+
+        if resolution[:api_base_url].blank?
+          raise ConfigurationError.new(
+            'Spectra Flow API URL not configured',
+            error_code: Errors::ERROR_CODES[:not_configured],
+            config_sources: sources
+          )
+        end
+
+        unless self.class.valid_api_url?(resolution[:api_base_url])
+          raise ConfigurationError.new(
+            'Spectra Flow API URL is invalid',
+            error_code: Errors::ERROR_CODES[:invalid_url],
+            config_sources: sources
+          )
+        end
+
+        if resolution[:bearer_token].blank?
+          raise ConfigurationError.new(
+            'Spectra Flow bearer token not configured',
+            error_code: Errors::ERROR_CODES[:not_configured],
+            config_sources: sources
+          )
+        end
+      end
+
+      def request_json(method, path, query: {}, body: nil)
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        url = request_url(path)
+        host = safe_host(@api_base_url)
+
+        response = perform_http(method, url, query: query, body: body)
+        duration_ms = elapsed_ms(started)
+        result = parse_json_response(response)
+
+        log_request(
+          host: host,
+          path: path,
+          status: result[:status],
+          duration_ms: duration_ms,
+          error_class: result[:error].present? ? 'UpstreamError' : nil
+        )
+
+        result
+      rescue Net::OpenTimeout, Net::ReadTimeout
+        duration_ms = elapsed_ms(started)
+        log_request(host: safe_host(@api_base_url), path: path, status: 504, duration_ms: duration_ms, error_class: 'TimeoutError')
+        timeout_result
+      rescue SocketError, Errno::ECONNREFUSED, OpenSSL::SSL::SSLError, HTTParty::Error => e
+        duration_ms = elapsed_ms(started)
+        log_request(host: safe_host(@api_base_url), path: path, status: 502, duration_ms: duration_ms, error_class: e.class.name)
+        upstream_unavailable_result(e)
+      end
+
+      def request_download(path, query: {})
+        started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        url = request_url(path)
+
+        response = self.class.get(
+          url,
+          query: query,
+          headers: auth_headers,
+          format: :plain,
+          timeout: DEFAULT_TIMEOUT
+        )
+
+        duration_ms = elapsed_ms(started)
+        result = parse_download_response(response)
+        log_request(host: safe_host(@api_base_url), path: path, status: result[:status], duration_ms: duration_ms)
+        result
+      rescue Net::OpenTimeout, Net::ReadTimeout
+        timeout_result
+      rescue SocketError, Errno::ECONNREFUSED, OpenSSL::SSL::SSLError, HTTParty::Error => e
+        upstream_unavailable_result(e)
+      end
+
+      def perform_http(method, url, query:, body:)
+        options = {
+          query: query,
+          headers: auth_headers,
+          timeout: DEFAULT_TIMEOUT
+        }
+        options[:body] = body.to_json if body
+        options[:headers] = auth_headers.merge('Content-Type' => 'application/json') if body
+
+        case method
+        when :get then self.class.get(url, options)
+        when :post then self.class.post(url, options)
+        else
+          raise ArgumentError, "Unsupported HTTP method: #{method}"
+        end
+      end
+
+      def request_url(path)
+        normalized_path = path.start_with?('/') ? path : "/#{path}"
+        "#{@api_base_url}#{normalized_path}"
       end
 
       def auth_headers
@@ -108,53 +317,41 @@ module Integrations
         }
       end
 
-      def get_json(path, query: {})
-        response = self.class.get(
-          "#{@api_base_url}#{path}",
-          query: query,
-          headers: auth_headers,
-          timeout: DEFAULT_TIMEOUT
-        )
-
-        parse_json_response(response)
-      rescue Net::OpenTimeout, Net::ReadTimeout, HTTParty::Error, SocketError, Errno::ECONNREFUSED
-        { error: 'Spectra Flow request timeout', status: 502 }
-      end
-
-      def post_json(path, body)
-        response = self.class.post(
-          "#{@api_base_url}#{path}",
-          headers: auth_headers.merge('Content-Type' => 'application/json'),
-          body: body.to_json,
-          timeout: DEFAULT_TIMEOUT
-        )
-
-        parse_json_response(response)
-      rescue Net::OpenTimeout, Net::ReadTimeout, HTTParty::Error, SocketError, Errno::ECONNREFUSED
-        { error: 'Spectra Flow request timeout', status: 502 }
-      end
-
       def parse_json_response(response)
-        if response.success?
-          { data: sanitize_payload(response.parsed_response), status: response.code }
-        else
-          detail = extract_error_detail(response)
-          { error: detail, status: response.code }
+        unless response.success?
+          return error_result(
+            extract_error_detail(response),
+            status: response.code,
+            error_code: Errors.error_code_for_status(response.code)
+          )
         end
-      rescue StandardError
-        { error: 'Spectra Flow request failed', status: 502 }
+
+        parsed = response.parsed_response
+        unless parsed.is_a?(Hash) || parsed.is_a?(Array)
+          return error_result(
+            'Spectra Flow returned invalid JSON payload',
+            status: 502,
+            error_code: Errors::ERROR_CODES[:invalid_response]
+          )
+        end
+
+        { data: sanitize_payload(parsed), status: response.code }
+      rescue JSON::ParserError
+        error_result(
+          'Spectra Flow returned invalid JSON payload',
+          status: 502,
+          error_code: Errors::ERROR_CODES[:invalid_response]
+        )
       end
 
       def parse_download_response(response)
         if response.success?
           body = response.body.to_s
           if body.bytesize > MAX_DOWNLOAD_BYTES
-            return { error: 'File exceeds maximum allowed size', status: 422 }
+            return error_result('File exceeds maximum allowed size', status: 422, error_code: 'file_too_large')
           end
 
-          filename = self.class.sanitize_filename(
-            extract_filename(response.headers['content-disposition'])
-          )
+          filename = self.class.sanitize_filename(extract_filename(response.headers['content-disposition']))
           {
             data: {
               body: body,
@@ -164,11 +361,61 @@ module Integrations
             status: response.code
           }
         else
-          detail = extract_error_detail(response)
-          { error: detail, status: response.code }
+          error_result(
+            extract_error_detail(response),
+            status: response.code,
+            error_code: Errors.error_code_for_status(response.code)
+          )
         end
-      rescue StandardError
-        { error: 'Spectra Flow request failed', status: 502 }
+      end
+
+      def error_result(message, status:, error_code:)
+        {
+          error: message,
+          status: status,
+          error_code: error_code
+        }
+      end
+
+      def timeout_result
+        error_result(
+          'Spectra Flow request timeout',
+          status: 504,
+          error_code: Errors::ERROR_CODES[:timeout]
+        )
+      end
+
+      def upstream_unavailable_result(error)
+        error_result(
+          'Spectra Flow upstream unavailable',
+          status: 502,
+          error_code: Errors::ERROR_CODES[:upstream_unavailable]
+        ).tap do |result|
+          Rails.logger.warn(
+            {
+              event: 'spectra_flow_upstream_error',
+              account_id: @account.id,
+              error_class: error.class.name
+            }.to_json
+          )
+        end
+      end
+
+      def log_request(host:, path:, status:, duration_ms:, error_class: nil)
+        Rails.logger.info(
+          {
+            event: 'spectra_flow_request',
+            account_id: @account.id,
+            host: host,
+            path: path,
+            status: status,
+            duration_ms: duration_ms,
+            error_class: error_class,
+            config_api_url_source: @config_sources[:api_url_source],
+            config_token_source: @config_sources[:token_source],
+            token_configured: @config_sources[:token_configured]
+          }.to_json
+        )
       end
 
       def sanitize_payload(payload)
@@ -226,6 +473,16 @@ module Integrations
 
         match = content_disposition.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i)
         (match && match[1]) ? match[1].strip : 'documento'
+      end
+
+      def safe_host(url)
+        URI.parse(url.to_s).host
+      rescue URI::InvalidURIError
+        nil
+      end
+
+      def elapsed_ms(started)
+        ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
       end
     end
   end
