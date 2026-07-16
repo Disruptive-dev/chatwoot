@@ -176,6 +176,7 @@ let editorView = null;
 let state = null;
 
 const showUserMentions = ref(false);
+const showInternalDocumentCommand = ref(false);
 const showCannedMenu = ref(false);
 const showVariables = ref(false);
 const showEmojiMenu = ref(false);
@@ -268,6 +269,11 @@ const plugins = computed(() => {
   }
 
   return [
+    createSuggestionPlugin({
+      trigger: '@documentos',
+      showMenu: showInternalDocumentCommand,
+      isAllowed: () => !props.isPrivate,
+    }),
     createSuggestionPlugin({
       trigger: '@',
       showMenu: showToolsMenu,

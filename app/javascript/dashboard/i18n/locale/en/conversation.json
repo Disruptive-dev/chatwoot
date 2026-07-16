@@ -191,6 +191,33 @@
       "CLICK_HERE": "Click here to update",
       "WHATSAPP_TEMPLATES": "Whatsapp Templates"
     },
+    "INTERNAL_COMMANDS": {
+      "CLOSE": "Close",
+      "DOCUMENTS": {
+        "TITLE": "Documentos disponibles desde Spectra",
+        "SEARCH_PLACEHOLDER": "Buscar por nombre, categoría o etiqueta",
+        "LOADING": "Loading documents...",
+        "EMPTY": "No documents available.",
+        "CATEGORY": "Category: {category}",
+        "TAGS": "Tags: {tags}",
+        "VERSION": "Version: {version}",
+        "SIZE": "Size: {size}",
+        "STATUS": "Status: {status}",
+        "STATUS_READY": "Ready to send",
+        "NO_TAGS": "No tags",
+        "ATTACHING": "Preparing document…",
+        "SUCCESS_ATTACH": "Document attached. Send the message when ready.",
+        "ERROR_LOAD": "Could not load documents from Spectra Flow",
+        "ERROR_CONNECT": "Could not connect to Spectra.",
+        "ERROR_FORBIDDEN": "You do not have permission to query documents.",
+        "ERROR_NOT_FOUND": "The selected document is no longer available.",
+        "ERROR_TOKEN_EXPIRED": "Temporary document access expired. Please try again.",
+        "ERROR_FILE_TOO_LARGE": "The file exceeds the maximum allowed size.",
+        "ERROR_ATTACH": "Could not attach the selected document",
+        "DEFAULT_FILENAME": "document",
+        "SPECTRA_HINT": "Document available from Spectra"
+      }
+    },
     "REPLYBOX": {
       "REPLY": "Reply",
       "PRIVATE_NOTE": "Private Note",

@@ -353,6 +353,15 @@ Rails.application.routes.draw do
           end
 
           resources :upload, only: [:create]
+
+          namespace :spectra do
+            resources :documents, only: [:index] do
+              member do
+                post :download_token
+                get :download
+              end
+            end
+          end
         end
       end
       # end of account scoped api routes

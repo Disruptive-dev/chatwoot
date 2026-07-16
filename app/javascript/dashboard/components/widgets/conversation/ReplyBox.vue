@@ -14,6 +14,14 @@ import ReplyEmailHead from './ReplyEmailHead.vue';
 import ReplyBottomPanel from 'dashboard/components/widgets/WootWriter/ReplyBottomPanel.vue';
 import CopilotReplyBottomPanel from 'dashboard/components/widgets/WootWriter/CopilotReplyBottomPanel.vue';
 import ArticleSearchPopover from 'dashboard/routes/dashboard/helpcenter/components/ArticleSearch/SearchPopover.vue';
+import DocumentCommandModal from 'dashboard/components/widgets/conversation/internalCommands/DocumentCommandModal.vue';
+import {
+  stripInternalCommands,
+  parseDocumentosInvocation,
+  shouldOpenDocumentosModal,
+  removeDocumentosInvocation,
+  documentosInvocationChanged,
+} from 'dashboard/helper/internalCommands';
 import CopilotEditorSection from './CopilotEditorSection.vue';
 import MessageSignatureMissingAlert from './MessageSignatureMissingAlert.vue';
 import ReplyBoxBanner from './ReplyBoxBanner.vue';
@@ -62,6 +70,7 @@ const EmojiInput = defineAsyncComponent(
 export default {
   components: {
     ArticleSearchPopover,
+    DocumentCommandModal,
     AttachmentPreview,
     AudioRecorder,
     ReplyBoxBanner,
@@ -135,6 +144,9 @@ export default {
       showVariablesMenu: false,
       newConversationModalActive: false,
       showArticleSearchPopover: false,
+      showDocumentCommandModal: false,
+      internalCommandModalOpen: false,
+      documentCommandInitialSearch: '',
       hasRecordedAudio: false,
     };
   },
@@ -309,10 +321,14 @@ export default {
       return conversationDisplayType !== CONDENSED;
     },
     isMessageEmpty() {
-      if (!this.message) {
+      const sanitizedMessage = stripInternalCommands(this.message);
+      if (!sanitizedMessage) {
         return true;
       }
-      return !this.message.trim().replace(/\n/g, '').length;
+      return !sanitizedMessage.trim().replace(/\n/g, '').length;
+    },
+    messageForSend() {
+      return stripInternalCommands(this.message);
     },
     showReplyHead() {
       return !this.isOnPrivateNote && this.isAnEmailChannel;
@@ -458,9 +474,13 @@ export default {
         this.resetRecorderAndClearAttachments();
       }
     },
-    message() {
+    message(newValue, oldValue) {
       // Autosave the current message draft.
       this.doAutoSaveDraft();
+      this.handleInternalCommandTrigger(newValue, oldValue, {
+        allowBare: false,
+      });
+      this.debouncedDocumentosBareCheck(newValue, oldValue);
     },
     replyType(updatedReplyType, oldReplyType) {
       this.setToDraft(this.conversationIdByRoute, oldReplyType);
@@ -481,6 +501,15 @@ export default {
       },
       500,
       true
+    );
+    this.debouncedDocumentosBareCheck = debounce(
+      (message, previousMessage) => {
+        this.handleInternalCommandTrigger(message, previousMessage, {
+          allowBare: true,
+        });
+      },
+      650,
+      false
     );
 
     this.fetchAndSetReplyTo();
@@ -717,9 +746,9 @@ export default {
         // This can create duplicate messages in Chatwoot. To prevent this issue, we'll handle text and attachments as separate messages.
         const isOnInstagram = this.isAnInstagramChannel;
         if ((isOnWhatsApp || isOnInstagram) && !this.isPrivate) {
-          this.sendMessageAsMultipleMessages(this.message);
+          this.sendMessageAsMultipleMessages(this.messageForSend);
         } else {
-          const messagePayload = this.getMessagePayload(this.message);
+          const messagePayload = this.getMessagePayload(this.messageForSend);
           this.sendMessage(messagePayload);
         }
 
@@ -1000,7 +1029,7 @@ export default {
       // For Instagram, we need a separate text message
       // For WhatsApp, we only need a text message if there are no attachments
       if (
-        (this.isAnInstagramChannel && this.message) ||
+        (this.isAnInstagramChannel && message) ||
         (!this.isAnInstagramChannel && hasNoAttachments)
       ) {
         let messagePayload = {
@@ -1102,6 +1131,39 @@ export default {
     onSearchPopoverClose() {
       this.showArticleSearchPopover = false;
     },
+    handleInternalCommandTrigger(
+      message,
+      previousMessage,
+      { allowBare = false } = {}
+    ) {
+      if (this.internalCommandModalOpen || this.isOnPrivateNote) return;
+
+      if (!documentosInvocationChanged(message, previousMessage)) return;
+      if (!shouldOpenDocumentosModal(message, { allowBare })) return;
+
+      const parsed = parseDocumentosInvocation(message);
+      this.openDocumentCommandModal(parsed?.searchTerm || '');
+    },
+    openDocumentCommandModal(initialSearch = '') {
+      if (this.showDocumentCommandModal || this.isOnPrivateNote) return;
+
+      this.documentCommandInitialSearch = initialSearch;
+      this.internalCommandModalOpen = true;
+      this.showDocumentCommandModal = true;
+      this.message = removeDocumentosInvocation(this.message);
+    },
+    closeDocumentCommandModal() {
+      this.showDocumentCommandModal = false;
+      this.internalCommandModalOpen = false;
+      this.documentCommandInitialSearch = '';
+    },
+    async handleDocumentCommandSelect({ file }) {
+      this.closeDocumentCommandModal();
+      this.onFileUpload(file);
+      useAlert(
+        this.$t('CONVERSATION.INTERNAL_COMMANDS.DOCUMENTS.SUCCESS_ATTACH')
+      );
+    },
     toggleInsertArticle() {
       this.showArticleSearchPopover = !this.showArticleSearchPopover;
     },
@@ -1148,6 +1210,12 @@ export default {
       :selected-portal-slug="connectedPortalSlug"
       @insert="handleInsert"
       @close="onSearchPopoverClose"
+    />
+    <DocumentCommandModal
+      v-if="showDocumentCommandModal"
+      :initial-search="documentCommandInitialSearch"
+      @close="closeDocumentCommandModal"
+      @select="handleDocumentCommandSelect"
     />
     <Transition
       mode="out-in"

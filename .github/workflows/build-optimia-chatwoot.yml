@@ -34,7 +34,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/disruptive-dev/chatwoot:v4.10.1-optimia.2
+            ghcr.io/disruptive-dev/chatwoot:v4.10.1-optimia.3
             ghcr.io/disruptive-dev/chatwoot:optimia-latest
           build-args: |
             SECRET_KEY_BASE=dummy_secret_key_base_for_assets

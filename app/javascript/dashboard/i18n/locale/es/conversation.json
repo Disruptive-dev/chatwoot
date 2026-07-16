@@ -189,6 +189,33 @@
       "CLICK_HERE": "Haga clic aquí para actualizar",
       "WHATSAPP_TEMPLATES": "Plantillas de Whatsapp"
     },
+    "INTERNAL_COMMANDS": {
+      "CLOSE": "Cerrar",
+      "DOCUMENTS": {
+        "TITLE": "Documentos disponibles desde Spectra",
+        "SEARCH_PLACEHOLDER": "Buscar por nombre, categoría o etiqueta",
+        "LOADING": "Cargando documentos...",
+        "EMPTY": "No hay documentos disponibles.",
+        "CATEGORY": "Categoría: {category}",
+        "TAGS": "Etiquetas: {tags}",
+        "VERSION": "Versión: {version}",
+        "SIZE": "Tamaño: {size}",
+        "STATUS": "Estado: {status}",
+        "STATUS_READY": "Listo para enviar",
+        "NO_TAGS": "Sin etiquetas",
+        "ATTACHING": "Preparando documento…",
+        "SUCCESS_ATTACH": "Documento adjunto. Envíe el mensaje cuando esté listo.",
+        "ERROR_LOAD": "No se pudieron cargar los documentos",
+        "ERROR_CONNECT": "No se pudo conectar con Spectra.",
+        "ERROR_FORBIDDEN": "No tenés permisos para consultar documentos.",
+        "ERROR_NOT_FOUND": "El documento seleccionado ya no está disponible.",
+        "ERROR_TOKEN_EXPIRED": "El acceso temporal al documento expiró. Intentá nuevamente.",
+        "ERROR_FILE_TOO_LARGE": "El archivo supera el tamaño máximo permitido.",
+        "ERROR_ATTACH": "No se pudo adjuntar el documento seleccionado",
+        "DEFAULT_FILENAME": "documento",
+        "SPECTRA_HINT": "Documento disponible desde Spectra"
+      }
+    },
     "REPLYBOX": {
       "REPLY": "Responder",
       "PRIVATE_NOTE": "Nota privada",
