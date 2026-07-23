@@ -108,6 +108,21 @@ Resolución: cuenta → GlobalConfig DB → ENV (ver `client.rb`).
 
 ---
 
+## Channel Manager / Evolution API (OptimiA Sprint 2)
+
+| Variable | Componente | Req | Sens | Ejemplo seguro | Descripción | .env.ex | Web | Worker | Observaciones |
+|----------|------------|-----|------|----------------|-------------|---------|-----|--------|---------------|
+| `EVOLUTION_API_URL` | Evolution | O* | — | `https://evo-api.example.com` | URL base Evolution API | ❌ | ✅ | ✅ | *Req si Connection Center activo |
+| `EVOLUTION_API_KEY` | Evolution | O* | S | `***` | API key global Evolution | ❌ | ✅ | ✅ | Solo server-side |
+| `OPTIMIA_CHATWOOT_PUBLIC_URL` | Evolution→Chatwoot | O* | — | `https://app.example.com` | URL pública Chatwoot para Evolution | ❌ | ✅ | ✅ | Default: `FRONTEND_URL` |
+| `OPTIMIA_EVOLUTION_CHATWOOT_API_TOKEN` | Evolution→Chatwoot | O* | S | `***` | Token API Chatwoot para integración Evolution | ❌ | ✅ | ✅ | Fallback: token del admin |
+| `OPTIMIA_CHANNEL_MANAGER_ENABLED` | Channel Manager | O | — | `true` | Kill switch global | ❌ | ✅ | ✅ | Default: `true` |
+| `EVOLUTION_PAIRING_CODE_SUPPORTED` | Evolution | O | — | `false` | Habilita pairing code en UI | ❌ | ✅ | ✅ | Según soporte real Evolution |
+
+Feature flag por cuenta: `optimia_channel_manager` (`config/features.yml`).
+
+---
+
 ## Email / SMTP
 
 | Variable | Componente | Req | Sens | Ejemplo seguro | Descripción | .env.ex | Web | Worker | Observaciones |

@@ -2,6 +2,7 @@
 import { h, ref, computed, onMounted } from 'vue';
 import { provideSidebarContext, useSidebarResize } from './provider';
 import { useAccount } from 'dashboard/composables/useAccount';
+import { FEATURE_FLAGS } from 'dashboard/featureFlags';
 import { useKbd } from 'dashboard/composables/utils/useKbd';
 import { useMapGetter } from 'dashboard/composables/store';
 import { useStore } from 'vuex';
@@ -37,7 +38,8 @@ const emit = defineEmits([
   'closeMobileSidebar',
 ]);
 
-const { accountScopedRoute, isOnChatwootCloud } = useAccount();
+const { accountScopedRoute, isOnChatwootCloud, isCloudFeatureEnabled } =
+  useAccount();
 const store = useStore();
 const searchShortcut = useKbd([`$mod`, 'k']);
 const { t } = useI18n();
@@ -596,12 +598,16 @@ const menuItems = computed(() => {
           icon: 'i-lucide-inbox',
           to: accountScopedRoute('settings_inbox_list'),
         },
-        {
-          name: 'Settings Channels WhatsApp',
-          label: t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.TITLE'),
-          icon: 'i-woot-whatsapp',
-          to: accountScopedRoute('settings_channels_whatsapp'),
-        },
+        ...(isCloudFeatureEnabled(FEATURE_FLAGS.OPTIMIA_CHANNEL_MANAGER)
+          ? [
+              {
+                name: 'Settings Channels WhatsApp',
+                label: t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.TITLE'),
+                icon: 'i-woot-whatsapp',
+                to: accountScopedRoute('settings_channels_whatsapp'),
+              },
+            ]
+          : []),
         {
           name: 'Settings Labels',
           label: t('SIDEBAR.LABELS'),

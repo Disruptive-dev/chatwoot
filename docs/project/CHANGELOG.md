@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+### Added (Sprint 2 — Channel Manager + WhatsApp Connection Center)
+
+- Modelo `OptimiaChannelConnection` con máquina de estados y auditoría.
+- Evolution API adapter + Provider Registry (`lib/integrations/evolution/`, `lib/integrations/optimia/channel_manager/`).
+- API `optimia/whatsapp/connections` (QR, status, reconnect, disconnect).
+- UI Configuración → WhatsApp con wizard, polling y multi-número.
+- Provisioning idempotente de inbox Chatwoot (`Channel::Api`).
+- Feature flag `optimia_channel_manager`, ADR-004, RFC, runbook staging.
+
 ### Added (Sprint 1 — preparación staging)
 
 - `docs/optimia/environments/` — arquitectura staging aislado, imágenes, variables, web/worker, controles.
