@@ -5,11 +5,18 @@
 
 ## [Unreleased]
 
+### Added (Sprint 1 — preparación staging)
+
+- `docs/optimia/environments/` — arquitectura staging aislado, imágenes, variables, web/worker, controles.
+- `docs/optimia/operations/easypanel-staging-setup-guide.md`.
+- `.github/workflows/build-optimia-chatwoot-staging.yml` — build manual, tags `staging-*`.
+
 ### Pendiente
 
-- Inventario real EasyPanel (Sprint 1).
+- Publicar imagen staging (workflow manual).
+- Crear proyecto staging en EasyPanel (acción humana).
 - Aprobación ADRs por propietario.
-- Docker v2 (post-Sprint 1).
+- Docker v2 (post-staging operativo).
 
 ---
 

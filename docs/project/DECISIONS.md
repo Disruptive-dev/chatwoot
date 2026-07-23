@@ -51,4 +51,22 @@
 | [ADR-002](../optimia/adr/ADR-002-container-strategy.md) | Docker v2 web + worker | PROPUESTA |
 | [ADR-003](../optimia/adr/ADR-003-versioning-strategy.md) | Versionado SemVer OptimiA | PROPUESTA |
 
+### DEC-004 — Staging en proyecto EasyPanel separado
+
+- **Fecha:** 2026-07-23
+- **Estado:** APROBADA (Sprint 1)
+- **Contexto:** Producción verificada con clientes reales; necesidad de entorno de prueba sin riesgo.
+- **Decisión:** Staging = proyecto EasyPanel nuevo, BD/Redis/storage/credenciales/dominio/imagen tag distintos. Prohibido copiar datos o ENV de prod.
+- **Consecuencias:** Guía manual + workflow staging manual; tag con prefijo `staging-`.
+
+### DEC-005 — Workflow staging solo `workflow_dispatch`
+
+- **Fecha:** 2026-07-23
+- **Estado:** APROBADA (Sprint 1)
+- **Contexto:** Evitar builds staging automáticos en push a `develop` que confundan con prod.
+- **Decisión:** `build-optimia-chatwoot-staging.yml` solo disparo manual; `build-optimia-chatwoot.yml` sin cambios.
+- **Consecuencias:** Imagen staging se publica explícitamente antes del deploy EasyPanel.
+
+---
+
 No aprobar ni implementar ADRs hasta decisión explícita del propietario.

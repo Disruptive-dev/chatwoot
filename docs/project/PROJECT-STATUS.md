@@ -1,7 +1,7 @@
 # PROJECT-STATUS — OptimiA
 
 > Fuente de verdad del estado del proyecto. Actualizar al cierre de cada sprint.  
-> Última actualización: 2026-07-23 (cierre Sprint 0)
+> Última actualización: 2026-07-23 (Sprint 1 — preparación staging)
 
 ## Identidad
 
@@ -19,71 +19,63 @@
 
 | Referencia | SHA | Descripción |
 |------------|-----|-------------|
-| Commit funcional previo | `462802c9e` | Optimia Inbox v0.1.2 — último cambio de producto |
-| Commit Sprint 0 (docs) | `5ab2bb5e4` | Trazabilidad, baseline y seguridad |
-| Commit continuidad | *(ver `git log -1` tras push)* | Protocolo cross-session |
-| Baseline fork | `6a7cbcf5` | Último commit upstream antes de personalizaciones OptimiA |
-| Tag baseline | `chatwoot-base/v4.10.1` → `6a7cbcf5` | No equivale al tag release upstream `v4.10.1` (`1345f679`) |
+| Commit funcional | `462802c9e` | Optimia Inbox v0.1.2 |
+| Sprint 0 docs | `5ab2bb5e4` | Trazabilidad y baseline |
+| Sprint 0 continuidad | `86d316283` | Protocolo cross-session |
+| Sprint 1 staging | *(ver `git log -1` tras commit)* | Preparación staging aislado |
+| Baseline fork | `6a7cbcf5` | Último upstream antes de OptimiA |
+| Tag baseline | `chatwoot-base/v4.10.1` → `6a7cbcf5` | Publicado en origin |
 
-## Remotes
+## Producción (verificado — NO MODIFICAR)
 
-| Remote | URL |
-|--------|-----|
-| `origin` | `https://github.com/pablo-paez-dev/chatwoot` |
-| `upstream` | `https://github.com/chatwoot/chatwoot.git` |
+| Componente | Valor |
+|------------|-------|
+| Imagen | `ghcr.io/disruptive-dev/chatwoot:v4.10.1-optimia.6` |
+| Web | `chatwoot` |
+| Worker | `chatwoot-sidekiq` (misma imagen, Sidekiq operativo) |
+| PostgreSQL | `chatwoot-db` |
+| Redis | `chatwoot-redis` |
+| Dominio | `https://app.optimia.spectra-metrics.com` |
+| Estado | Clientes reales, operativo |
 
-## Desfase upstream (verificado Sprint 0)
+## Staging
 
-| Métrica | Valor |
-|---------|-------|
-| Adelante de `upstream/develop` | 43 commits (OptimiA) |
-| Detrás de `upstream/develop` | 713 commits |
-
-## Entornos
-
-| Entorno | Estado |
-|---------|--------|
-| **Producción** | PENDIENTE DE TRAZABILIDAD EASYPANEL |
-| **Staging** | NO VERIFICADO |
-| **Dominio esperado** | `https://app.optimia.spectra-metrics.com` (referencia CI, no confirmado en EasyPanel) |
-
-## Infraestructura
-
-| Componente | Estado |
-|------------|--------|
-| **Worker Sidekiq** | PENDIENTE DE VERIFICACIÓN en EasyPanel |
-| **Imagen productiva** | PENDIENTE DE VERIFICACIÓN EN EASYPANEL |
-| **Imagen detectada en CI** | `ghcr.io/disruptive-dev/chatwoot:v4.10.1-optimia.6` *(no asumir desplegada)* |
-| **Tag flotante CI** | `ghcr.io/disruptive-dev/chatwoot:optimia-latest` *(no usar en prod)* |
+| Campo | Estado |
+|-------|--------|
+| **Entorno** | NO CREADO — documentación lista |
+| **Dominio propuesto** | `https://staging.optimia.spectra-metrics.com` |
+| **Imagen propuesta** | `ghcr.io/disruptive-dev/chatwoot:staging-cw-4.10.1-optimia-0.1.2` |
+| **Workflow build** | `build-optimia-chatwoot-staging.yml` (manual, no afecta prod) |
+| **Guía EasyPanel** | `docs/optimia/operations/easypanel-staging-setup-guide.md` |
 
 ## Sprints
 
-| Sprint | Estado | Commit principal |
-|--------|--------|------------------|
-| Sprint 0 — Trazabilidad y baseline | **FINALIZADO** | `5ab2bb5e4` + continuidad |
-| Sprint 1 — Inventario EasyPanel y normalización | **PENDIENTE** | — |
+| Sprint | Estado |
+|--------|--------|
+| Sprint 0 — Trazabilidad y baseline | **FINALIZADO** |
+| Sprint 1 — Preparación staging aislado | **EN CURSO / PREPARACIÓN** (sin deploy) |
+| Sprint 1b — Creación staging EasyPanel | **PENDIENTE** (acción humana) |
 
 ## ADRs
 
-| ADR | Tema | Estado |
-|-----|------|--------|
-| ADR-001 | Repositorio canónico | PROPUESTA — pendiente decisión propietario |
-| ADR-002 | Estrategia de contenedores | PROPUESTA — pendiente decisión propietario |
-| ADR-003 | Estrategia de versionado | PROPUESTA — pendiente decisión propietario |
+| ADR | Estado |
+|-----|--------|
+| ADR-001, 002, 003 | PROPUESTA — pendiente decisión propietario |
 
-## Bloqueos actuales
+## Bloqueos
 
-1. Trazabilidad EasyPanel no verificada — completar `docs/optimia/operations/easypanel-production-checklist.md`.
-2. Worker Sidekiq en producción no confirmado.
-3. ADRs sin aprobación del propietario.
+1. Staging no desplegado — requiere acción humana en EasyPanel.
+2. Imagen staging debe publicarse vía workflow manual antes del deploy.
+3. ADRs sin aprobación formal.
 
 ## Próximo paso exacto
 
-**El usuario debe completar el checklist manual de EasyPanel** (`docs/optimia/operations/easypanel-production-checklist.md`) y enviar los datos (sin secretos). No iniciar cambios funcionales hasta recibir esa información.
+1. Revisar y aprobar commit Sprint 1 en repo (push si autorizado).
+2. Disparar manualmente `Build Optimia Chatwoot Staging Image` en GitHub Actions.
+3. Operador crea proyecto staging en EasyPanel siguiendo la guía — **sin tocar prod**.
 
 ## Documentación clave
 
-- `docs/optimia/` — documentación técnica OptimiA
-- `docs/project/SPRINT-HANDOFF.md` — historial de sprints
-- `docs/project/DECISIONS.md` — decisiones registradas
-- `scripts/project-context.sh` — diagnóstico rápido (solo lectura)
+- Staging: `docs/optimia/environments/`
+- Guía EasyPanel staging: `docs/optimia/operations/easypanel-staging-setup-guide.md`
+- Handoff: `docs/project/SPRINT-HANDOFF.md`

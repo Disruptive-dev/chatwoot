@@ -12,7 +12,8 @@ Este directorio contiene la documentación operativa, arquitectónica y de segur
 | Directorio | Contenido |
 |------------|-----------|
 | [`architecture/`](architecture/) | Estado actual, estado objetivo, topología de despliegue, RFC Docker v2 |
-| [`operations/`](operations/) | Runbooks de backup, deploy, rollback; plantilla EasyPanel |
+| [`environments/`](environments/) | **Staging aislado** — arquitectura, variables, imágenes, controles |
+| [`operations/`](operations/) | Runbooks de backup, deploy, rollback; guías EasyPanel |
 | [`security/`](security/) | Baseline de seguridad y gestión de secretos |
 | [`upgrades/`](upgrades/) | Estrategia upstream y matriz de versiones Chatwoot |
 | [`inventory/`](inventory/) | Personalizaciones, archivos críticos, variables de entorno |
@@ -30,7 +31,8 @@ Este directorio contiene la documentación operativa, arquitectónica y de segur
 
 ## Próximos pasos
 
-1. Completar inventario manual en EasyPanel (`operations/easypanel-inventory-template.md`).
-2. Aprobar ADR-001 (repositorio canónico).
-3. Implementar Docker v2 (ver `architecture/docker-v2-rfc.md`).
-4. Sprint 1: normalización de repositorio y CI en DSW-Factory.
+1. ~~Completar inventario manual en EasyPanel~~ — producción verificada Sprint 1.
+2. Disparar workflow `build-optimia-chatwoot-staging.yml` (manual).
+3. Crear proyecto staging en EasyPanel siguiendo [`operations/easypanel-staging-setup-guide.md`](operations/easypanel-staging-setup-guide.md).
+4. Aprobar ADR-001, ADR-002, ADR-003.
+5. Implementar Docker v2 (post-staging operativo).

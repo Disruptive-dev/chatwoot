@@ -1,0 +1,67 @@
+name: Build Optimia Chatwoot Staging Image
+
+# Staging-only build. Does NOT run on push to develop.
+# Does NOT modify production tags (v4.10.1-optimia.6, optimia-latest).
+# Trigger manually from GitHub Actions → Run workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      optimia_version:
+        description: 'OptimiA SemVer for tag (e.g. 0.1.2)'
+        required: true
+        default: '0.1.2'
+      chatwoot_version:
+        description: 'Chatwoot base version for tag (e.g. 4.10.1)'
+        required: true
+        default: '4.10.1'
+      frontend_url:
+        description: 'FRONTEND_URL for asset precompile (staging domain)'
+        required: true
+        default: 'https://staging.optimia.spectra-metrics.com'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push-staging:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set staging image tag
+        run: |
+          TAG="staging-cw-${{ inputs.chatwoot_version }}-optimia-${{ inputs.optimia_version }}"
+          echo "STAGING_TAG=${TAG}" >> $GITHUB_ENV
+          echo "Building ghcr.io/disruptive-dev/chatwoot:${TAG}"
+
+      - name: Build and push OptimiA staging image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/disruptive-dev/chatwoot:${{ env.STAGING_TAG }}
+          build-args: |
+            SECRET_KEY_BASE=dummy_secret_key_base_for_assets
+            FRONTEND_URL=${{ inputs.frontend_url }}
+            INSTALLATION_NAME=OptimIA Staging
+            BRAND_NAME=OptimIA
+
+      - name: Summary
+        run: |
+          echo "## Staging image published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: \`ghcr.io/disruptive-dev/chatwoot:${STAGING_TAG}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- FRONTEND_URL: \`${{ inputs.frontend_url }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Production tags were NOT modified." >> $GITHUB_STEP_SUMMARY
