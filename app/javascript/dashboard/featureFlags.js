@@ -46,6 +46,7 @@ export const FEATURE_FLAGS = {
   COMPANIES: 'companies',
   ADVANCED_SEARCH: 'advanced_search',
   CONVERSATION_REQUIRED_ATTRIBUTES: 'conversation_required_attributes',
+  OPTIMIA_CHANNEL_MANAGER: 'optimia_channel_manager',
 };
 
 export const PREMIUM_FEATURES = [

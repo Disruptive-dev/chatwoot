@@ -117,4 +117,39 @@
 
 ---
 
+## Sprint 2 — Channel Manager Foundation + WhatsApp Connection Center
+
+| Campo | Valor |
+|-------|-------|
+| **Sprint** | Sprint 2 — Channel Manager + Connection Center |
+| **Entorno** | Cursor Cloud Agent |
+| **Rama** | `develop` (sin rama paralela) |
+| **Deploy** | No |
+| **Producción modificada** | No |
+
+### Entregables
+
+- Modelo `OptimiaChannelConnection` + auditoría + máquina de estados
+- Provider Registry + Evolution Adapter (`lib/integrations/evolution/`, `lib/integrations/optimia/channel_manager/`)
+- API `optimia/whatsapp/connections` (CRUD parcial + QR + status + reconnect + disconnect)
+- UI `Configuración → WhatsApp` (listado, wizard, QR, polling)
+- Provisioning idempotente de inbox Chatwoot (`Channel::Api`)
+- Feature flag `optimia_channel_manager`
+- RFC, ADR-004, seguridad, runbook staging
+- Specs RSpec (modelo, servicio, request)
+
+### Variables ENV nuevas
+
+- `EVOLUTION_API_URL`, `EVOLUTION_API_KEY`
+- `OPTIMIA_CHATWOOT_PUBLIC_URL`, `OPTIMIA_EVOLUTION_CHATWOOT_API_TOKEN`
+- `OPTIMIA_CHANNEL_MANAGER_ENABLED`, `EVOLUTION_PAIRING_CODE_SUPPORTED`
+
+### Próximo paso exacto
+
+1. Push `develop` y build imagen staging.
+2. Configurar ENV Evolution en staging.
+3. Smoke tests según `staging-connection-center-runbook.md`.
+
+---
+
 <!-- Próximas entradas se agregan debajo, sin modificar las anteriores -->

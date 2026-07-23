@@ -1,0 +1,58 @@
+{
+  "OPTIMIA_CHANNEL_MANAGER": {
+    "HEADER": "Channels",
+    "WHATSAPP": {
+      "TITLE": "WhatsApp",
+      "DESCRIPTION": "Connect and manage your WhatsApp numbers without technical setup.",
+      "LIST": {
+        "TITLE": "WhatsApp connections",
+        "EMPTY": "You don't have any WhatsApp numbers connected yet.",
+        "CONNECT_BUTTON": "Connect number",
+        "STATUS": "Status",
+        "PHONE": "Phone number",
+        "INBOX": "Inbox"
+      },
+      "WIZARD": {
+        "TITLE": "Connect WhatsApp number",
+        "DISPLAY_NAME_LABEL": "Connection name",
+        "DISPLAY_NAME_PLACEHOLDER": "e.g. Sales WhatsApp",
+        "START_BUTTON": "Start connection",
+        "SCAN_TITLE": "Scan the QR code",
+        "SCAN_DESCRIPTION": "Open WhatsApp on your phone, go to Linked devices and scan this code.",
+        "COUNTDOWN": "QR expires in {seconds}s",
+        "REFRESH_QR": "Refresh QR",
+        "PAIRING_TITLE": "Pairing code",
+        "PAIRING_DESCRIPTION": "Enter this code in WhatsApp if your device supports pairing.",
+        "WAITING": "Waiting for connection...",
+        "SUCCESS_TITLE": "WhatsApp connected",
+        "SUCCESS_DESCRIPTION": "Your number is ready to receive conversations.",
+        "GO_TO_INBOX": "Go to inbox"
+      },
+      "ACTIONS": {
+        "RECONNECT": "Reconnect",
+        "DISCONNECT": "Disconnect",
+        "VIEW": "View"
+      },
+      "STATES": {
+        "draft": "Draft",
+        "creating": "Creating connection",
+        "created": "Created",
+        "waiting_qr": "Preparing QR",
+        "waiting_scan": "Waiting for scan",
+        "pairing": "Pairing",
+        "connected": "Connected",
+        "syncing": "Syncing",
+        "ready": "Ready",
+        "disconnected": "Disconnected",
+        "reconnecting": "Reconnecting",
+        "error": "Error",
+        "disabled": "Disabled"
+      },
+      "ERRORS": {
+        "GENERIC": "We couldn't complete the WhatsApp connection. Try again.",
+        "NOT_CONFIGURED": "WhatsApp connection is not available yet. Contact your administrator.",
+        "FEATURE_DISABLED": "WhatsApp Connection Center is not enabled for this account."
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "OPTIMIA_CHANNEL_MANAGER": {
+    "HEADER": "Canales",
+    "WHATSAPP": {
+      "TITLE": "WhatsApp",
+      "DESCRIPTION": "Conectá y administrá tus números de WhatsApp sin configuración técnica.",
+      "LIST": {
+        "TITLE": "Conexiones de WhatsApp",
+        "EMPTY": "Todavía no tenés números de WhatsApp conectados.",
+        "CONNECT_BUTTON": "Conectar número",
+        "STATUS": "Estado",
+        "PHONE": "Número",
+        "INBOX": "Bandeja"
+      },
+      "WIZARD": {
+        "TITLE": "Conectar número de WhatsApp",
+        "DISPLAY_NAME_LABEL": "Nombre de la conexión",
+        "DISPLAY_NAME_PLACEHOLDER": "ej. WhatsApp Ventas",
+        "START_BUTTON": "Iniciar conexión",
+        "SCAN_TITLE": "Escaneá el código QR",
+        "SCAN_DESCRIPTION": "Abrí WhatsApp en tu teléfono, andá a Dispositivos vinculados y escaneá este código.",
+        "COUNTDOWN": "El QR expira en {seconds}s",
+        "REFRESH_QR": "Actualizar QR",
+        "PAIRING_TITLE": "Código de vinculación",
+        "PAIRING_DESCRIPTION": "Ingresá este código en WhatsApp si tu dispositivo admite vinculación.",
+        "WAITING": "Esperando conexión...",
+        "SUCCESS_TITLE": "WhatsApp conectado",
+        "SUCCESS_DESCRIPTION": "Tu número está listo para recibir conversaciones.",
+        "GO_TO_INBOX": "Ir a la bandeja"
+      },
+      "ACTIONS": {
+        "RECONNECT": "Reconectar",
+        "DISCONNECT": "Desconectar",
+        "VIEW": "Ver"
+      },
+      "STATES": {
+        "draft": "Borrador",
+        "creating": "Creando conexión",
+        "created": "Creada",
+        "waiting_qr": "Preparando QR",
+        "waiting_scan": "Esperando escaneo",
+        "pairing": "Vinculando",
+        "connected": "Conectado",
+        "syncing": "Sincronizando",
+        "ready": "Listo",
+        "disconnected": "Desconectado",
+        "reconnecting": "Reconectando",
+        "error": "Error",
+        "disabled": "Deshabilitado"
+      },
+      "ERRORS": {
+        "GENERIC": "No pudimos completar la conexión de WhatsApp. Intentá de nuevo.",
+        "NOT_CONFIGURED": "La conexión de WhatsApp todavía no está disponible. Contactá a tu administrador.",
+        "FEATURE_DISABLED": "El Centro de Conexión WhatsApp no está habilitado para esta cuenta."
+      }
+    }
+  }
+}

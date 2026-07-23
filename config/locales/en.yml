@@ -425,3 +425,24 @@ en:
       subject: 'Finish setting up %{custom_domain} in OptimIA'
     ssl_status:
       custom_domain_not_configured: 'Custom domain is not configured'
+  optimia:
+    whatsapp_connections:
+      errors:
+        not_configured: 'WhatsApp connection is not available yet. Contact your administrator.'
+        upstream_unavailable: 'Could not reach the WhatsApp connection service. Try again.'
+        generic: 'We could not complete the WhatsApp connection. Try again.'
+        feature_disabled: 'WhatsApp Connection Center is not enabled for this account.'
+      status:
+        ready: 'Your WhatsApp number is ready.'
+        draft: 'Preparing your connection.'
+        creating: 'Creating your connection.'
+        created: 'Connection created.'
+        waiting_qr: 'Preparing QR code.'
+        waiting_scan: 'Waiting for QR scan.'
+        pairing: 'Waiting for pairing.'
+        connected: 'WhatsApp connected.'
+        syncing: 'Finishing setup.'
+        disconnected: 'WhatsApp disconnected.'
+        reconnecting: 'Reconnecting WhatsApp.'
+        error: 'Connection error.'
+        disabled: 'Connection disabled.'

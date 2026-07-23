@@ -103,7 +103,7 @@ commit → lint + test → build imagen → push GHCR (tag inmutable)
 ```
 lib/integrations/
 ├── spectra_flow/     # Activo
-└── evolution/        # Futuro (Sprint 6+)
+└── evolution/        # Activo (Sprint 2 — Connection Center)
 ```
 
 Branding vía ENV + `installation_config` + assets, no strings hardcodeadas en `en.yml` completo.

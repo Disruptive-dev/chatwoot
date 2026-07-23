@@ -241,3 +241,7 @@
   display_name: Required Conversation Attributes
   enabled: false
   premium: true
+- name: optimia_channel_manager
+  display_name: OptimiA Channel Manager
+  enabled: true
+  chatwoot_internal: true

@@ -362,6 +362,20 @@ Rails.application.routes.draw do
               end
             end
           end
+
+          namespace :optimia do
+            namespace :whatsapp do
+              resources :connections, only: [:index, :create, :show] do
+                member do
+                  get :status
+                  post :qr
+                  post :reconnect
+                  post :disconnect
+                  post :pairing_code
+                end
+              end
+            end
+          end
         end
       end
       # end of account scoped api routes

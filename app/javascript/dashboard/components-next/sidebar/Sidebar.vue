@@ -597,6 +597,12 @@ const menuItems = computed(() => {
           to: accountScopedRoute('settings_inbox_list'),
         },
         {
+          name: 'Settings Channels WhatsApp',
+          label: t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.TITLE'),
+          icon: 'i-woot-whatsapp',
+          to: accountScopedRoute('settings_channels_whatsapp'),
+        },
+        {
           name: 'Settings Labels',
           label: t('SIDEBAR.LABELS'),
           icon: 'i-lucide-tags',

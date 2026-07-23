@@ -1,7 +1,7 @@
 # PROJECT-STATUS — OptimiA
 
 > Fuente de verdad del estado del proyecto. Actualizar al cierre de cada sprint.  
-> Última actualización: 2026-07-23 (Sprint 1 — preparación staging)
+> Última actualización: 2026-07-23 (Sprint 2 — Channel Manager foundation)
 
 ## Identidad
 
@@ -22,7 +22,8 @@
 | Commit funcional | `462802c9e` | Optimia Inbox v0.1.2 |
 | Sprint 0 docs | `5ab2bb5e4` | Trazabilidad y baseline |
 | Sprint 0 continuidad | `86d316283` | Protocolo cross-session |
-| Sprint 1 staging | *(ver `git log -1` tras commit)* | Preparación staging aislado |
+| Sprint 1 staging | `c3537990d` | Preparación staging aislado |
+| Sprint 2 Connection Center | *(ver `git log -1` tras commit)* | Channel Manager + WhatsApp Connection Center |
 | Baseline fork | `6a7cbcf5` | Último upstream antes de OptimiA |
 | Tag baseline | `chatwoot-base/v4.10.1` → `6a7cbcf5` | Publicado en origin |
 
@@ -53,29 +54,34 @@
 | Sprint | Estado |
 |--------|--------|
 | Sprint 0 — Trazabilidad y baseline | **FINALIZADO** |
-| Sprint 1 — Preparación staging aislado | **EN CURSO / PREPARACIÓN** (sin deploy) |
+| Sprint 1 — Preparación staging aislado | **FINALIZADO** (sin deploy) |
 | Sprint 1b — Creación staging EasyPanel | **PENDIENTE** (acción humana) |
+| Sprint 2 — Channel Manager + Connection Center | **IMPLEMENTADO** (pendiente staging QA) |
 
 ## ADRs
 
 | ADR | Estado |
 |-----|--------|
 | ADR-001, 002, 003 | PROPUESTA — pendiente decisión propietario |
+| ADR-004 | ACEPTADO — Channel Manager foundation |
 
 ## Bloqueos
 
 1. Staging no desplegado — requiere acción humana en EasyPanel.
 2. Imagen staging debe publicarse vía workflow manual antes del deploy.
-3. ADRs sin aprobación formal.
+3. ADRs 001-003 sin aprobación formal.
+4. Sprint 2 requiere validación en staging (Evolution API + smoke tests).
 
 ## Próximo paso exacto
 
-1. Revisar y aprobar commit Sprint 1 en repo (push si autorizado).
-2. Disparar manualmente `Build Optimia Chatwoot Staging Image` en GitHub Actions.
-3. Operador crea proyecto staging en EasyPanel siguiendo la guía — **sin tocar prod**.
+1. Push `develop` y build imagen staging.
+2. Configurar ENV Evolution en staging.
+3. Smoke tests: `docs/optimia/operations/staging-connection-center-runbook.md`.
 
 ## Documentación clave
 
 - Staging: `docs/optimia/environments/`
 - Guía EasyPanel staging: `docs/optimia/operations/easypanel-staging-setup-guide.md`
 - Handoff: `docs/project/SPRINT-HANDOFF.md`
+- Channel Manager RFC: `docs/optimia/architecture/channel-manager-rfc.md`
+- Connection Center runbook: `docs/optimia/operations/staging-connection-center-runbook.md`
