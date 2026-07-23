@@ -6,6 +6,12 @@
 | Fecha | 2026-07-23 |
 | Decisores | Equipo OptimiA / DSW-Factory |
 
+## Estado de aprobación
+
+**PENDIENTE DE DECISIÓN DEL PROPIETARIO**
+
+No crear ni transferir `DSW-Factory/optimia-chatwoot` hasta aprobación explícita.
+
 ## Contexto
 
 OptimiA se desarrolla actualmente en `pablo-paez-dev/chatwoot`, una cuenta personal de GitHub. El CI publica imágenes en `ghcr.io/disruptive-dev/chatwoot` bajo la org Disruptive-dev. Existe la org `DSW-Factory` en GitHub sin repositorio `chatwoot`/`optimia-chatwoot` aún.

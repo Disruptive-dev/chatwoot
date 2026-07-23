@@ -5,6 +5,12 @@
 | Estado | **PROPUESTA — PENDIENTE DE APROBACIÓN** |
 | Fecha | 2026-07-23 |
 
+## Estado de aprobación
+
+**PENDIENTE DE DECISIÓN DEL PROPIETARIO**
+
+No crear tags `optimia/v*` ni cambiar esquema de imágenes hasta aprobación explícita.
+
 ## Contexto
 
 OptimiA tiene dos dimensiones de versión:

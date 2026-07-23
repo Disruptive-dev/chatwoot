@@ -1,0 +1,70 @@
+---
+description: Protocolo obligatorio de continuidad entre Cursor Online, Cursor Desktop, Coder y GitHub
+alwaysApply: true
+---
+
+# Continuidad de sesión — OptimiA
+
+El repositorio Git y la documentación en `docs/project/` son la **fuente de verdad compartida** entre Cursor Online, Cursor Desktop, Coder y cualquier agente.
+
+La conversación anterior **no** representa el estado actual del proyecto.
+
+## Antes de cualquier tarea
+
+1. Leer la documentación de estado:
+   - `docs/project/PROJECT-STATUS.md`
+   - `docs/project/SPRINT-HANDOFF.md`
+   - `docs/project/DECISIONS.md`
+   - `docs/project/CHANGELOG.md`
+   - `docs/optimia/README.md`
+2. Ejecutar diagnóstico Git (solo lectura):
+
+```bash
+pwd
+git status --short --branch
+git branch --show-current
+git log -1 --oneline
+git remote -v
+git fetch origin --prune
+git rev-list --left-right --count HEAD...origin/$(git branch --show-current)
+```
+
+3. Opcional: `bash scripts/project-context.sh`
+4. Revisar rama activa y working tree.
+5. Revisar último commit y commits locales sin push.
+6. Revisar si el remoto tiene cambios nuevos.
+7. Identificar el último sprint terminado en `SPRINT-HANDOFF.md`.
+8. Identificar trabajo incompleto documentado.
+
+## Detenerse si
+
+- Hay cambios desconocidos no comprendidos en el working tree.
+- Existe divergencia con `origin` no documentada.
+- Hay conflictos de merge o rebase pendientes.
+- El sprint actual no está claro en la documentación.
+- Se solicita modificar producción sin aprobación explícita.
+
+## Prohibiciones
+
+- Asumir que la conversación anterior es el estado actual.
+- Sobrescribir cambios desconocidos.
+- Iniciar un sprint con cambios pendientes no comprendidos.
+- Cambiar de rama sin autorización.
+- Descartar trabajo (`git reset`, `git clean`, force push).
+- Inventar decisiones no registradas en `DECISIONS.md` o ADRs.
+- Modificar producción, EasyPanel, variables de entorno o imágenes desplegadas sin aprobación explícita.
+
+## Después de cada sprint
+
+1. Actualizar `docs/project/PROJECT-STATUS.md`.
+2. Agregar entrada append-only a `docs/project/SPRINT-HANDOFF.md`.
+3. Registrar decisiones en `docs/project/DECISIONS.md` (si aplica).
+4. Actualizar `docs/project/CHANGELOG.md`.
+5. Registrar validaciones ejecutadas y pendientes.
+6. Registrar commit(s) y push (o motivo si no se hizo push).
+7. Registrar si hubo deploy (sí/no).
+8. Dejar el próximo paso exacto documentado.
+
+## Referencia
+
+Ver también la sección **OptimiA — Continuidad entre sesiones** en `AGENTS.md`.

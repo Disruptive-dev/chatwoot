@@ -6,6 +6,12 @@
 | Fecha | 2026-07-23 |
 | Relacionado | [docker-v2-rfc.md](../architecture/docker-v2-rfc.md) |
 
+## Estado de aprobación
+
+**PENDIENTE DE DECISIÓN DEL PROPIETARIO**
+
+No implementar Docker v2 hasta aprobación explícita.
+
 ## Contexto
 
 Estado actual (Sprint 0):

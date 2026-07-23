@@ -1,5 +1,47 @@
 # Chatwoot Development Guidelines
 
+## OptimiA — Continuidad entre sesiones (obligatorio)
+
+Este repositorio incluye el producto **OptimiA** (fork de Chatwoot). Git y `docs/project/` son la fuente de verdad compartida entre Cursor Online, Cursor Desktop, Coder y GitHub.
+
+### Antes de modificar código
+
+Ejecutar:
+
+```bash
+pwd
+git status --short --branch
+git branch --show-current
+git log -1 --oneline
+git remote -v
+git fetch origin --prune
+git rev-list --left-right --count HEAD...origin/$(git branch --show-current)
+```
+
+Opcional: `bash scripts/project-context.sh`
+
+Leer:
+
+- `docs/project/PROJECT-STATUS.md`
+- `docs/project/SPRINT-HANDOFF.md`
+- `docs/project/DECISIONS.md`
+- `docs/project/CHANGELOG.md`
+- `docs/optimia/README.md`
+
+### Prohibido sin autorización explícita
+
+- Asumir que la conversación anterior representa el estado actual del repo.
+- Sobrescribir cambios desconocidos o iniciar un sprint con trabajo pendiente no comprendido.
+- Cambiar de rama, descartar trabajo (`git reset`, `git clean`, force push).
+- Inventar decisiones no registradas en `DECISIONS.md` o ADRs.
+- Modificar producción, EasyPanel, variables de entorno o imágenes desplegadas.
+
+### Al cerrar un sprint
+
+Actualizar `PROJECT-STATUS.md`, append en `SPRINT-HANDOFF.md`, `CHANGELOG.md`, y registrar decisiones. Ver `.cursor/rules/00-session-continuity.mdc`.
+
+---
+
 ## Build / Test / Lint
 
 - **Setup**: `bundle install && pnpm install`
