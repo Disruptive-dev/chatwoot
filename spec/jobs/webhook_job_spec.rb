@@ -27,5 +27,15 @@ RSpec.describe WebhookJob do
       expect(Webhooks::Trigger).to receive(:execute).with(url, payload, webhook_type)
       perform_enqueued_jobs { job }
     end
+
+    context 'when url targets evolution chatwoot webhook' do
+      let(:url) { 'https://evo.example.com/chatwoot/webhook/optimia-1-test' }
+
+      it 'uses the optimia evolution delivery handler' do
+        expect(Integrations::Optimia::ChannelManager::EvolutionWebhookDelivery).to receive(:execute).with(url, payload)
+        expect(Webhooks::Trigger).not_to receive(:execute)
+        perform_enqueued_jobs { job }
+      end
+    end
   end
 end

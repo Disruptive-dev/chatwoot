@@ -3,6 +3,8 @@
 Rails.application.config.to_prepare do
   require Rails.root.join('lib/integrations/optimia/channel_manager/monitor_config')
   require Rails.root.join('lib/integrations/optimia/channel_manager/chatwoot_webhook_resolver')
+  require Rails.root.join('lib/integrations/optimia/channel_manager/outbound_delivery_result')
+  require Rails.root.join('lib/integrations/optimia/channel_manager/evolution_webhook_delivery')
   require Rails.root.join('lib/integrations/optimia/channel_manager/providers/evolution_adapter')
 
   Integrations::Optimia::ChannelManager::ProviderRegistry.register(

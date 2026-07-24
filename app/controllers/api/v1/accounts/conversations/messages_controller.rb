@@ -14,7 +14,16 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
   end
 
   def update
-    Messages::StatusUpdateService.new(message, permitted_params[:status], permitted_params[:external_error]).perform
+    if optimia_evolution_inbox?
+      Optimia::ChannelManager::OutboundStatusProcessor.new(
+        message: message,
+        status: permitted_params[:status],
+        external_error: permitted_params[:external_error],
+        source_id: permitted_params[:source_id]
+      ).perform!
+    else
+      Messages::StatusUpdateService.new(message, permitted_params[:status], permitted_params[:external_error]).perform
+    end
     @message = message
   end
 
@@ -65,7 +74,7 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
   end
 
   def permitted_params
-    params.permit(:id, :target_language, :status, :external_error)
+    params.permit(:id, :target_language, :status, :external_error, :source_id)
   end
 
   def already_translated_content_available?
@@ -76,5 +85,9 @@ class Api::V1::Accounts::Conversations::MessagesController < Api::V1::Accounts::
   def ensure_api_inbox
     # Only API inboxes can update messages
     render json: { error: 'Message status update is only allowed for API inboxes' }, status: :forbidden unless @conversation.inbox.api?
+  end
+
+  def optimia_evolution_inbox?
+    OptimiaChannelConnection.exists?(inbox_id: @conversation.inbox_id, provider: 'evolution')
   end
 end

@@ -31,6 +31,11 @@ RSpec.describe 'OptimiA outbound via API inbox webhook', type: :request do
   end
 
   it 'does not change webhook delivery for unrelated inbox types' do
+    stub_request(:post, 'https://waba.360dialog.io/v1/configs/webhook')
+      .to_return(status: 200, body: '{}', headers: { 'Content-Type' => 'application/json' })
+    stub_request(:get, 'https://waba.360dialog.io/v1/configs/templates')
+      .to_return(status: 200, body: '{"waba_templates":[]}', headers: { 'Content-Type' => 'application/json' })
+
     whatsapp_channel = create(:channel_whatsapp, account: account)
     whatsapp_inbox = whatsapp_channel.inbox
     whatsapp_conversation = create(:conversation, account: account, inbox: whatsapp_inbox)
