@@ -62,7 +62,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/disruptive-dev/chatwoot:${{ env.STAGING_TAG }}
+            ghcr.io/pablo-paez-dev/chatwoot:${{ env.STAGING_TAG }}
           build-args: |
             SECRET_KEY_BASE=dummy_secret_key_base_for_assets
             FRONTEND_URL=${{ env.FRONTEND_URL_BUILD }}
@@ -73,6 +73,6 @@ jobs:
         run: |
           echo "## Staging image published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Image: \`ghcr.io/disruptive-dev/chatwoot:${STAGING_TAG}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Image: \`ghcr.io/pablo-paez-dev/chatwoot:${STAGING_TAG}\`" >> $GITHUB_STEP_SUMMARY
           echo "- FRONTEND_URL: \`${FRONTEND_URL_BUILD}\`" >> $GITHUB_STEP_SUMMARY
           echo "- Production tags were NOT modified." >> $GITHUB_STEP_SUMMARY
