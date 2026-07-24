@@ -5,6 +5,42 @@
 
 ## [Unreleased]
 
+### Pendiente
+
+- Publicar imagen staging v0.2.0 (workflow manual).
+- QA Technical Health Center en staging.
+- Aprobación ADRs por propietario.
+
+---
+
+## OptimiA 0.2.0 — 2026-07-24
+
+### Added (Sprint 3 — Technical Health Center)
+
+- NOC Dashboard con monitoreo de 12 componentes (Rails, Sidekiq, Redis, PostgreSQL, Evolution, Docker, Storage, Jobs, Scheduler, Webhooks, WhatsApp, Deploy).
+- `Orchestrator` + checkers + `AlertDetectorService` (11 reglas de alerta).
+- `DiagnosticCenterService` con score y recomendaciones por plataforma/conexión.
+- `ConnectionMonitorService` + `TimelineBuilderService` integrados con Channel Manager.
+- `DeploymentCenterService` + modelo `OptimiaDeploymentRecord`.
+- API interna `/internal/health/*` con token `OPTIMIA_INTERNAL_HEALTH_TOKEN`.
+- UI Super Admin `/super_admin/technical_health` (dashboard, refresh, diagnose, timeline, alertas, incidentes).
+- Job `Optimia::TechnicalHealth::CollectHealthJob` (cron cada 5 min).
+- Migración `20260724160000_create_optimia_technical_health_tables`.
+- Documentación `docs/optimia/technical-health/`.
+- Versión producto: `Optimia::VERSION = '0.2.0'`.
+
+### Variables ENV nuevas
+
+- `OPTIMIA_INTERNAL_HEALTH_TOKEN`, `OPTIMIA_DEPLOY_VERSION`, `OPTIMIA_DEPLOY_COMMIT_SHA`
+- `OPTIMIA_DEPLOY_IMAGE_DIGEST`, `OPTIMIA_DEPLOY_IMAGE_TAG`
+- `OPTIMIA_SWARM_SERVICE`, `OPTIMIA_NODE_ROLE`
+
+### Deploy
+
+- Ninguno (staging pendiente).
+
+---
+
 ### Added (Sprint 2 — Channel Manager + WhatsApp Connection Center)
 
 - Modelo `OptimiaChannelConnection` con máquina de estados y auditoría.

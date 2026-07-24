@@ -458,3 +458,22 @@ en:
         webhook_missing: 'WhatsApp outbound webhook is missing and could not be repaired automatically.'
         inbox_inconsistent: 'WhatsApp inbox configuration is inconsistent.'
         consecutive_failures: 'WhatsApp connection failed multiple times in a row.'
+    technical_health:
+      notices:
+        checks_refreshed: 'Technical health checks refreshed.'
+        alert_acknowledged: 'Alert acknowledged.'
+        alert_resolved: 'Alert resolved.'
+        incident_acknowledged: 'Incident acknowledged.'
+        incident_resolved: 'Incident resolved.'
+      alerts:
+        qr_expired: 'QR code expired for one or more WhatsApp connections.'
+        webhook_broken: 'Webhook configuration is broken or missing.'
+        evolution_down: 'Evolution API is unavailable.'
+        redis_down: 'Redis is not responding.'
+        sidekiq_stopped: 'No Sidekiq processes are running.'
+        postgres_slow: 'PostgreSQL latency is above threshold.'
+        storage_full: 'Storage utilization is critical.'
+        deploy_incomplete: 'Deployment has pending database migrations.'
+        excessive_retries: 'Sidekiq retry queue is growing.'
+        pending_messages: 'Background job backlog is high.'
+        consecutive_errors: 'Multiple WhatsApp connections are in error state.'

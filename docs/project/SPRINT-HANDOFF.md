@@ -152,4 +152,60 @@
 
 ---
 
+## Sprint 3 — Technical Health Center v0.2.0
+
+| Campo | Valor |
+|-------|-------|
+| **Sprint** | Sprint 3 — Technical Health Center |
+| **Entorno** | Cursor Cloud Agent |
+| **Rama** | `cursor/technical-health-center-3da0` |
+| **Versión OptimiA** | 0.2.0 |
+| **Deploy** | No |
+| **Producción modificada** | No |
+
+### Entregables
+
+- NOC Dashboard con 12 componentes monitoreados (`Orchestrator` + checkers).
+- Alert Detector (11 reglas) + gestión de alertas e incidentes.
+- Diagnostic Center (score 0–100) por plataforma y por conexión WhatsApp.
+- Connection Monitor + Timeline Builder integrado con Channel Manager.
+- Deployment Center + modelo `OptimiaDeploymentRecord`.
+- API interna `/internal/health/*` con autenticación por token.
+- UI Super Admin `/super_admin/technical_health`.
+- Job `Optimia::TechnicalHealth::CollectHealthJob` (cron `*/5 * * * *`).
+- Migración `20260724160000_create_optimia_technical_health_tables` (6 tablas).
+- Documentación `docs/optimia/technical-health/` (README, audit, risk-matrix, runbooks, executive-summary).
+- Specs RSpec (orchestrator, alert detector, diagnostic, controllers, job).
+
+### Modelos nuevos
+
+- `OptimiaTechnicalHealthCheck`, `OptimiaTechnicalAlert`, `OptimiaTechnicalIncident`
+- `OptimiaTechnicalTimelineEvent`, `OptimiaTechnicalMetricSnapshot`, `OptimiaDeploymentRecord`
+
+### Variables ENV nuevas
+
+- `OPTIMIA_INTERNAL_HEALTH_TOKEN`
+- `OPTIMIA_DEPLOY_VERSION`, `OPTIMIA_DEPLOY_COMMIT_SHA`, `OPTIMIA_DEPLOY_IMAGE_DIGEST`, `OPTIMIA_DEPLOY_IMAGE_TAG`
+- `OPTIMIA_SWARM_SERVICE`, `OPTIMIA_NODE_ROLE`
+
+### Controles
+
+| Control | Resultado |
+|---------|-----------|
+| Producción sin modificar | ✅ |
+| Deploy no ejecutado | ✅ |
+| Documentación en español | ✅ |
+| Sanitización payloads sensibles | ✅ |
+| Specs RSpec añadidos | ✅ |
+
+### Próximo paso exacto
+
+1. Merge a `develop` y build imagen staging `staging-cw-4.10.1-optimia-0.2.0`.
+2. Ejecutar migración BD en staging.
+3. Configurar `OPTIMIA_INTERNAL_HEALTH_TOKEN` y ENV deploy en EasyPanel staging.
+4. Smoke tests según `docs/optimia/technical-health/runbooks.md`.
+5. QA staging completo antes de planificar prod.
+
+---
+
 <!-- Próximas entradas se agregan debajo, sin modificar las anteriores -->

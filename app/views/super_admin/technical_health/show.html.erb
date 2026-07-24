@@ -1,0 +1,104 @@
+<% content_for(:title) { 'Technical Health Center' } %>
+
+<header class="main-content__header" role="banner">
+  <div class="flex items-center justify-between gap-4">
+    <h1 class="main-content__page-title" id="page-title"><%= content_for(:title) %></h1>
+    <div class="flex gap-2">
+      <%= button_to 'Refresh checks', refresh_super_admin_technical_health_path, method: :post, class: 'px-4 py-2 rounded-lg bg-slate-900 text-white text-sm' %>
+      <%= link_to 'Run platform diagnostic', diagnose_super_admin_technical_health_path, class: 'px-4 py-2 rounded-lg border text-sm' %>
+    </div>
+  </div>
+</header>
+
+<section class="main-content__body space-y-8">
+  <div>
+    <h2 class="text-lg font-semibold mb-3">NOC Dashboard</h2>
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      <% @dashboard[:components].each do |component| %>
+        <% status = component[:status] %>
+        <% badge = { 'healthy' => '🟢', 'degraded' => '🟡', 'critical' => '🔴', 'unknown' => '⚪' }[status] || '⚪' %>
+        <div class="border rounded-lg p-3">
+          <div class="text-sm font-medium"><%= badge %> <%= component[:component].humanize %></div>
+          <div class="text-xs text-slate-500 mt-1"><%= status %></div>
+          <div class="text-xs mt-1">Latency: <%= component[:latency_ms] || '-' %> ms</div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-3 gap-4">
+    <div class="border rounded-lg p-4">
+      <h3 class="font-semibold mb-2">Connections</h3>
+      <p>Total: <%= @dashboard.dig(:connections, :total) %></p>
+      <p>Operational: <%= @dashboard.dig(:connections, :operational) %></p>
+      <p>With QR: <%= @dashboard.dig(:connections, :with_qr) %></p>
+      <p>With Error: <%= @dashboard.dig(:connections, :with_error) %></p>
+      <p>Archived: <%= @dashboard.dig(:connections, :archived) %></p>
+    </div>
+    <div class="border rounded-lg p-4">
+      <h3 class="font-semibold mb-2">Messages Today</h3>
+      <p>Total: <%= @dashboard.dig(:messages, :today_total) %></p>
+      <p>Inbound: <%= @dashboard.dig(:messages, :inbound) %></p>
+      <p>Outbound: <%= @dashboard.dig(:messages, :outbound) %></p>
+    </div>
+    <div class="border rounded-lg p-4">
+      <h3 class="font-semibold mb-2">Deployment</h3>
+      <p>Version: <%= @deployment[:version] %></p>
+      <p>Tag: <%= @deployment[:image_tag] %></p>
+      <p>Commit: <%= @deployment[:commit_sha] || 'n/a' %></p>
+      <p>Status: <%= @deployment[:status] %></p>
+    </div>
+  </div>
+
+  <div>
+    <h2 class="text-lg font-semibold mb-3">WhatsApp Connections</h2>
+    <table class="w-full border-collapse">
+      <thead>
+        <tr>
+          <th class="text-left p-2 border-b">Name</th>
+          <th class="text-left p-2 border-b">State</th>
+          <th class="text-left p-2 border-b">Health</th>
+          <th class="text-left p-2 border-b">Score</th>
+          <th class="text-left p-2 border-b">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @connections.each do |connection| %>
+          <tr>
+            <td class="p-2 border-b"><%= connection[:display_name] %></td>
+            <td class="p-2 border-b"><%= connection[:state] %></td>
+            <td class="p-2 border-b"><%= connection[:health_status] %></td>
+            <td class="p-2 border-b"><%= connection[:health_score] %></td>
+            <td class="p-2 border-b flex gap-2">
+              <%= link_to 'Timeline', connection_timeline_super_admin_technical_health_path(connection_id: connection[:id]) %>
+              <%= link_to 'Diagnose', diagnose_super_admin_technical_health_path(connection_id: connection[:id]) %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-4">
+    <div>
+      <h2 class="text-lg font-semibold mb-3">Alert Center</h2>
+      <% @alerts.each do |alert| %>
+        <div class="border rounded-lg p-3 mb-2">
+          <div class="font-medium"><%= alert.severity.upcase %> — <%= alert.component %></div>
+          <div class="text-sm"><%= alert.message %></div>
+          <div class="text-xs text-slate-500"><%= alert.status %> · <%= alert.opened_at %></div>
+        </div>
+      <% end %>
+    </div>
+    <div>
+      <h2 class="text-lg font-semibold mb-3">Incident Center</h2>
+      <% @incidents.each do |incident| %>
+        <div class="border rounded-lg p-3 mb-2">
+          <div class="font-medium"><%= incident.component %></div>
+          <div class="text-sm"><%= incident.summary %></div>
+          <div class="text-xs text-slate-500"><%= incident.status %> · <%= incident.started_at %></div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</section>

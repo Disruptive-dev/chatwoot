@@ -1,4 +1,9 @@
 # https://github.com/ondrejbartas/sidekiq-cron
+optimia_technical_health_collect_job:
+  cron: '*/5 * * * *'
+  class: 'Optimia::TechnicalHealth::CollectHealthJob'
+  queue: scheduled_jobs
+
 optimia_channel_manager_monitor_connections_job:
   cron: '*/2 * * * *'
   class: 'Optimia::ChannelManager::MonitorConnectionsJob'

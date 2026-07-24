@@ -1,0 +1,16 @@
+<% content_for(:title) { "Timeline — #{@connection.display_name}" } %>
+
+<header class="main-content__header" role="banner">
+  <h1 class="main-content__page-title"><%= content_for(:title) %></h1>
+  <%= link_to 'Back to Technical Health', super_admin_technical_health_path %>
+</header>
+
+<section class="main-content__body">
+  <% @timeline.each do |event| %>
+    <div class="border-l-2 border-slate-300 pl-4 py-2 mb-2">
+      <div class="text-sm text-slate-500"><%= event[:occurred_at] || event['occurred_at'] %></div>
+      <div class="font-medium"><%= event[:summary] || event['summary'] %></div>
+      <div class="text-xs text-slate-500"><%= event[:event_type] || event['event_type'] %></div>
+    </div>
+  <% end %>
+</section>

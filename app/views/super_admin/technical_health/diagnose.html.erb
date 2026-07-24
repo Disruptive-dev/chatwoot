@@ -1,0 +1,21 @@
+<% content_for(:title) { 'Diagnostic Center' } %>
+
+<header class="main-content__header" role="banner">
+  <h1 class="main-content__page-title"><%= content_for(:title) %></h1>
+  <%= link_to 'Back to Technical Health', super_admin_technical_health_path %>
+</header>
+
+<section class="main-content__body">
+  <div class="border rounded-lg p-4 mb-4">
+    <h2 class="text-xl font-semibold">Diagnostic Score: <%= @diagnostic[:score] || @diagnostic['score'] %>/100</h2>
+  </div>
+
+  <h3 class="font-semibold mb-2">Recommendations</h3>
+  <ul class="list-disc pl-5 mb-6">
+    <% Array(@diagnostic[:recommendations] || @diagnostic['recommendations']).each do |item| %>
+      <li><%= item %></li>
+    <% end %>
+  </ul>
+
+  <pre class="bg-slate-100 p-4 rounded overflow-auto text-xs"><%= JSON.pretty_generate(@diagnostic) %></pre>
+</section>
