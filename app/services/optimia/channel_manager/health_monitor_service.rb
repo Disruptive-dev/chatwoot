@@ -78,7 +78,8 @@ module Optimia
       private
 
       def monitorable?
-        @connection.external_instance_id.present? &&
+        @connection.monitorable_lifecycle? &&
+          @connection.external_instance_id.present? &&
           @connection.state != 'disabled' &&
           MONITORABLE_STATES.include?(@connection.state)
       end

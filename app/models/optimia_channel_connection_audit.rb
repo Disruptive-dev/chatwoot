@@ -24,6 +24,14 @@ class OptimiaChannelConnectionAudit < ApplicationRecord
     connection_recovered
     error
     disabled
+    archived
+    archived_from_inbox_deletion
+    restored
+    deletion_started
+    deletion_failed
+    deleted
+    inbox_removed
+    deactivated
   ].freeze
 
   belongs_to :optimia_channel_connection

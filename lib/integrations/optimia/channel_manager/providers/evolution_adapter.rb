@@ -93,6 +93,18 @@ module Integrations
             { success: true }
           end
 
+          def delete_instance!(connection:)
+            client = build_client
+            instance_name = connection.external_instance_id
+            return { success: true } if instance_name.blank?
+
+            response = client.delete_instance(instance_name)
+            return { success: true } if response[:error].blank?
+            return { success: true } if response[:status].to_i == 404
+
+            raise_upstream_error!(response)
+          end
+
           def configure_chatwoot!(connection:, chatwoot_config:)
             client = build_client
             instance_name = connection.external_instance_id

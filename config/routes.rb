@@ -365,13 +365,15 @@ Rails.application.routes.draw do
 
           namespace :optimia do
             namespace :whatsapp do
-              resources :connections, only: [:index, :create, :show] do
+              resources :connections, only: [:index, :create, :show, :destroy] do
                 member do
                   get :status
                   get :diagnose
                   post :qr
                   post :reconnect
                   post :disconnect
+                  post :deactivate
+                  post :restore
                   post :pairing_code
                   post :sync_webhook
                 end

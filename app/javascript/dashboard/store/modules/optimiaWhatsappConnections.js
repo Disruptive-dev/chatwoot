@@ -87,6 +87,44 @@ export const actions = {
     return data.data;
   },
 
+  deactivate: async ({ commit }, id) => {
+    commit('SET_UI_FLAG', { isUpdating: true });
+    try {
+      const { data } = await OptimiaWhatsappConnectionsAPI.deactivate(id);
+      commit('UPSERT_RECORD', data.data);
+      commit('SET_ACTIVE_CONNECTION', data.data);
+      return data.data;
+    } finally {
+      commit('SET_UI_FLAG', { isUpdating: false });
+    }
+  },
+
+  restore: async ({ commit }, id) => {
+    commit('SET_UI_FLAG', { isUpdating: true });
+    try {
+      const { data } = await OptimiaWhatsappConnectionsAPI.restore(id);
+      commit('UPSERT_RECORD', data.data);
+      commit('SET_ACTIVE_CONNECTION', data.data);
+      return data.data;
+    } finally {
+      commit('SET_UI_FLAG', { isUpdating: false });
+    }
+  },
+
+  deleteConnection: async ({ commit }, { id, deleteInbox = true }) => {
+    commit('SET_UI_FLAG', { isUpdating: true });
+    try {
+      const { data } = await OptimiaWhatsappConnectionsAPI.deleteConnection(id, {
+        delete_inbox: deleteInbox,
+      });
+      commit('UPSERT_RECORD', data.data);
+      commit('SET_ACTIVE_CONNECTION', data.data);
+      return data.data;
+    } finally {
+      commit('SET_UI_FLAG', { isUpdating: false });
+    }
+  },
+
   diagnose: async ({ commit }, id) => {
     const { data } = await OptimiaWhatsappConnectionsAPI.diagnose(id);
     return data.data;

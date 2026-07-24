@@ -82,6 +82,30 @@ class Api::V1::Accounts::Optimia::Whatsapp::ConnectionsController < Api::V1::Acc
     render_service_error(e)
   end
 
+  def deactivate
+    authorize(@connection)
+    result = service.deactivate!(@connection)
+    render json: result
+  rescue Optimia::ChannelManager::ConnectionCenterService::ServiceError => e
+    render_service_error(e)
+  end
+
+  def restore
+    authorize(@connection)
+    result = service.restore!(@connection)
+    render json: result
+  rescue Optimia::ChannelManager::ConnectionCenterService::ServiceError => e
+    render_service_error(e)
+  end
+
+  def destroy
+    authorize(@connection)
+    result = service.delete!(@connection, delete_inbox: delete_params.fetch(:delete_inbox, true))
+    render json: result
+  rescue Optimia::ChannelManager::ConnectionCenterService::ServiceError => e
+    render_service_error(e)
+  end
+
   private
 
   def ensure_feature_enabled!
@@ -110,6 +134,10 @@ class Api::V1::Accounts::Optimia::Whatsapp::ConnectionsController < Api::V1::Acc
 
   def pairing_code_params
     params.permit(:phone_number)
+  end
+
+  def delete_params
+    params.permit(:delete_inbox)
   end
 
   def render_service_error(error)

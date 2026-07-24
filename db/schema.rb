@@ -1105,11 +1105,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_24_120001) do
     t.integer "reconnect_attempts_count", default: 0, null: false
     t.integer "recent_reconnect_count", default: 0, null: false
     t.datetime "last_health_check_at"
+    t.string "lifecycle_status", default: "active", null: false
+    t.datetime "archived_at"
+    t.datetime "deleted_at"
+    t.datetime "deletion_requested_at"
+    t.datetime "deletion_completed_at"
+    t.string "deletion_error"
+    t.boolean "inbox_recreation_enabled", default: true, null: false
+    t.datetime "last_reconciled_at"
     t.index ["account_id", "phone_number"], name: "index_optimia_connections_on_account_and_phone", unique: true, where: "(phone_number IS NOT NULL)"
     t.index ["account_id"], name: "index_optimia_channel_connections_on_account_id"
     t.index ["created_by_id"], name: "index_optimia_channel_connections_on_created_by_id"
     t.index ["inbox_id"], name: "index_optimia_channel_connections_on_inbox_id"
+    t.index ["inbox_recreation_enabled"], name: "index_optimia_channel_connections_on_inbox_recreation_enabled"
     t.index ["last_health_check_at"], name: "index_optimia_channel_connections_on_last_health_check_at"
+    t.index ["lifecycle_status"], name: "index_optimia_channel_connections_on_lifecycle_status"
     t.index ["provider", "external_instance_id"], name: "index_optimia_connections_on_provider_and_external_instance", unique: true, where: "(external_instance_id IS NOT NULL)"
     t.index ["state"], name: "index_optimia_channel_connections_on_state"
     t.index ["updated_by_id"], name: "index_optimia_channel_connections_on_updated_by_id"
