@@ -48,7 +48,8 @@ class OptimiaChannelConnection < ApplicationRecord
   end
 
   def generate_external_instance_id!
-    generated = "optimia-#{account_id}-#{SecureRandom.hex(8)}"
+    prefix = ENV.fetch('OPTIMIA_EVOLUTION_INSTANCE_PREFIX', 'optimia-stg')
+    generated = "#{prefix}-#{account_id}-#{SecureRandom.hex(6)}"
     update!(external_instance_id: generated)
     generated
   end

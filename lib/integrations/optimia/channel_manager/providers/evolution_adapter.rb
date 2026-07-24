@@ -68,8 +68,8 @@ module Integrations
             raise_upstream_error!(response) if response[:error].present?
 
             payload = response[:data]
-            instance_data = payload.is_a?(Hash) ? (payload['instance'] || payload) : {}
-            remote_state = instance_data['state'] || instance_data['status'] || payload['state']
+            instance_data = extract_instance_hash(payload)
+            remote_state = extract_remote_state(instance_data, payload)
             phone_number = extract_phone_number(instance_data, payload)
 
             StatusResult.new(
@@ -161,18 +161,45 @@ module Integrations
           end
 
           def extract_qr_payload(data)
-            qr = data.is_a?(Hash) ? (data['qrcode'] || data['qr'] || data) : {}
+            return { base64: nil, pairing_code: nil } unless data.is_a?(Hash)
+
+            qr = data['qrcode'] || data['qr'] || data
+            base64 = qr['base64'] || data['base64']
+            base64 = "data:image/png;base64,#{base64}" if base64.present? && !base64.start_with?('data:')
+
             {
-              base64: qr['base64'] || data['base64'],
-              pairing_code: qr['pairingCode'] || data['pairingCode']
+              base64: base64,
+              pairing_code: qr['pairingCode'] || qr['pairing_code'] || data['pairingCode']
             }
           end
 
           def extract_phone_number(instance_data, payload)
-            owner = instance_data['owner'] || payload['owner']
-            return owner if owner.present?
+            owner = instance_data['owner'] || payload['owner'] || instance_data['wuid']
+            return normalize_phone(owner) if owner.present?
 
-            instance_data['phoneNumber'] || payload['phoneNumber']
+            normalize_phone(instance_data['phoneNumber'] || payload['phoneNumber'])
+          end
+
+          def extract_instance_hash(payload)
+            return {} unless payload.is_a?(Hash)
+
+            payload['instance'].presence || payload
+          end
+
+          def extract_remote_state(instance_data, payload)
+            state = instance_data['state'] ||
+                    instance_data['status'] ||
+                    instance_data['connectionStatus'] ||
+                    payload['state'] ||
+                    payload['status']
+            state.to_s
+          end
+
+          def normalize_phone(value)
+            return nil if value.blank?
+
+            digits = value.to_s.gsub(/\D/, '')
+            digits.present? ? "+#{digits}" : nil
           end
 
           def instance_name_for(item)

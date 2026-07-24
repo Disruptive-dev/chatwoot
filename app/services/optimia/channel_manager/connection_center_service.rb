@@ -45,7 +45,7 @@ module Optimia
 
         provision_instance!(connection)
         connection.reload
-        { data: connection.public_attributes }
+        generate_qr!(connection)
       end
 
       def show_connection(connection)
@@ -239,6 +239,7 @@ module Optimia
       def provision_chatwoot!(connection)
         return if connection.state == 'ready'
 
+        inbox = ProvisioningService.new(connection: connection, performed_by: @performed_by).perform!
         from_state = connection.state
         connection.transition_to!('syncing') if connection.can_transition_to?('syncing')
 
@@ -250,7 +251,6 @@ module Optimia
           to_state: connection.state
         )
 
-        inbox = ProvisioningService.new(connection: connection, performed_by: @performed_by).perform!
         adapter = provider_for(connection)
         adapter.configure_chatwoot!(
           connection: connection,

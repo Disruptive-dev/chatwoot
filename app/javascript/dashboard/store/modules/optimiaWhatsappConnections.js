@@ -35,6 +35,7 @@ export const actions = {
       const { data } = await OptimiaWhatsappConnectionsAPI.createConnection(payload);
       commit('UPSERT_RECORD', data.data);
       commit('SET_ACTIVE_CONNECTION', data.data);
+      commit('SET_ACTIVE_QR', data.data.qr || null);
       return data.data;
     } finally {
       commit('SET_UI_FLAG', { isCreating: false });

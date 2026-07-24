@@ -34,6 +34,13 @@ RSpec.describe 'Optimia WhatsApp Connections API', type: :request do
           credentials: {}
         )
       )
+      allow(adapter).to receive(:fetch_qr!).and_return(
+        Integrations::Optimia::ChannelManager::ProviderAdapter::QrResult.new(
+          base64: 'data:image/png;base64,abc',
+          expires_at: 1.minute.from_now,
+          pairing_code: nil
+        )
+      )
 
       post "/api/v1/accounts/#{account.id}/optimia/whatsapp/connections",
            params: { display_name: 'Ventas' },

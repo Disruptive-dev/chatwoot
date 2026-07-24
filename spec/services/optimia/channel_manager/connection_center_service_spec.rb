@@ -23,11 +23,18 @@ RSpec.describe Optimia::ChannelManager::ConnectionCenterService do
           credentials: {}
         )
       )
+      allow(adapter).to receive(:fetch_qr!).and_return(
+        Integrations::Optimia::ChannelManager::ProviderAdapter::QrResult.new(
+          base64: 'data:image/png;base64,abc',
+          expires_at: 1.minute.from_now,
+          pairing_code: nil
+        )
+      )
 
       result = service.create_connection(display_name: 'Ventas')
 
       expect(result[:data][:display_name]).to eq('Ventas')
-      expect(result[:data][:state]).to eq('created')
+      expect(result[:data][:state]).to eq('waiting_scan')
       expect(account.optimia_channel_connections.count).to eq(1)
     end
   end
