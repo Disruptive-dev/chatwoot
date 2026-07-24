@@ -45,6 +45,7 @@ class Inbox < ApplicationRecord
   include OutOfOffisable
   include AccountCacheRevalidator
   include InboxAgentAvailability
+  include OptimiaManagedInboxLifecycle
 
   # Not allowing characters:
   validates :name, presence: true

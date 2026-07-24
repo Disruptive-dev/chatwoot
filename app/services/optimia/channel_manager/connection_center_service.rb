@@ -19,7 +19,7 @@ module Optimia
       end
 
       def list_connections
-        scope = @account.optimia_channel_connections.order(created_at: :desc)
+        scope = @account.optimia_channel_connections.administratively_visible.order(created_at: :desc)
         { data: scope.map(&:public_attributes) }
       end
 
@@ -53,6 +53,8 @@ module Optimia
       end
 
       def refresh_status!(connection)
+        return lifecycle_blocked_response(connection) unless connection.monitorable_lifecycle?
+
         adapter = provider_for(connection)
         ensure_instance_provisioned!(connection) if connection.state.in?(%w[draft creating created])
 
@@ -67,6 +69,8 @@ module Optimia
       end
 
       def generate_qr!(connection)
+        raise ServiceError.new('Connection is archived', error_code: 'archived') unless connection.monitorable_lifecycle?
+
         adapter = provider_for(connection)
         ensure_instance_provisioned!(connection)
 
@@ -109,6 +113,8 @@ module Optimia
       end
 
       def reconnect!(connection)
+        raise ServiceError.new('Connection is archived', error_code: 'archived') unless connection.monitorable_lifecycle?
+
         connection.clear_error!
         from_state = connection.state
         connection.transition_to!('reconnecting') if connection.can_transition_to?('reconnecting')
@@ -125,6 +131,9 @@ module Optimia
       end
 
       def disconnect!(connection)
+        raise ServiceError.new('Connection is archived', error_code: 'archived') if connection.lifecycle_archived?
+        raise ServiceError.new('Connection is being deleted', error_code: 'deleting') if connection.lifecycle_deleting?
+
         adapter = provider_for(connection)
         adapter.disconnect!(connection: connection)
 
@@ -147,6 +156,30 @@ module Optimia
         { data: connection.reload.public_attributes }
       rescue StandardError => e
         handle_operation_error(connection, e, action: 'disconnected')
+      end
+
+      def deactivate!(connection, lifecycle_status: 'archived')
+        DeactivateConnectionService.new(
+          connection: connection,
+          performed_by: @performed_by,
+          lifecycle_status: lifecycle_status
+        ).perform!
+      end
+
+      def restore!(connection)
+        RestoreConnectionService.new(connection: connection, performed_by: @performed_by).perform!
+      rescue RestoreConnectionService::ServiceError => e
+        raise ServiceError.new(e.message, error_code: e.error_code)
+      end
+
+      def delete!(connection, delete_inbox: true)
+        DeleteConnectionService.new(
+          connection: connection,
+          performed_by: @performed_by,
+          delete_inbox: delete_inbox
+        ).perform!
+      rescue DeleteConnectionService::ServiceError => e
+        raise ServiceError.new(e.message, error_code: e.error_code, http_status: e.http_status)
       end
 
       def request_pairing_code!(connection, phone_number:)
@@ -259,9 +292,18 @@ module Optimia
       end
 
       def provision_chatwoot!(connection)
-        return if connection.state == 'ready'
+        return if connection.state == 'ready' && connection.inbox.present?
+        return unless connection.provisioning_allowed?
+
+        if connection.inbox.blank?
+          if connection.state == 'ready'
+            MissingInboxHandler.new(connection: connection, performed_by: @performed_by).perform!
+            return
+          end
+        end
 
         inbox = ProvisioningService.new(connection: connection, performed_by: @performed_by).perform!
+        return if inbox.blank?
         from_state = connection.state
         connection.transition_to!('syncing') if connection.can_transition_to?('syncing')
 
@@ -416,6 +458,10 @@ module Optimia
         else
           I18n.t('optimia.whatsapp_connections.errors.generic')
         end
+      end
+
+      def lifecycle_blocked_response(connection)
+        { data: connection.public_attributes }
       end
     end
   end

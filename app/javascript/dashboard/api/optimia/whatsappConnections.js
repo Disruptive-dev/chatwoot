@@ -35,6 +35,18 @@ class OptimiaWhatsappConnectionsAPI extends ApiClient {
     return axios.post(`${this.url}/${id}/disconnect`);
   }
 
+  deactivate(id) {
+    return axios.post(`${this.url}/${id}/deactivate`);
+  }
+
+  restore(id) {
+    return axios.post(`${this.url}/${id}/restore`);
+  }
+
+  deleteConnection(id, payload = {}) {
+    return axios.delete(`${this.url}/${id}`, { params: payload });
+  }
+
   diagnose(id) {
     return axios.get(`${this.url}/${id}/diagnose`);
   }

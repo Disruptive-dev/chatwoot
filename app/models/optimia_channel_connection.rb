@@ -2,6 +2,7 @@
 
 class OptimiaChannelConnection < ApplicationRecord
   include OptimiaChannelConnectionStateMachine
+  include OptimiaChannelConnectionLifecycle
 
   PROVIDERS = %w[evolution].freeze
   CHANNEL_TYPES = %w[whatsapp].freeze
@@ -15,9 +16,10 @@ class OptimiaChannelConnection < ApplicationRecord
   has_many :optimia_channel_connection_alerts, dependent: :destroy_async
 
   scope :monitorable, lambda {
-    where.not(state: 'disabled')
-         .where.not(external_instance_id: nil)
-         .where(state: Optimia::ChannelManager::HealthMonitorService::MONITORABLE_STATES)
+    lifecycle_active
+      .where.not(state: 'disabled')
+      .where.not(external_instance_id: nil)
+      .where(state: Optimia::ChannelManager::HealthMonitorService::MONITORABLE_STATES)
   }
 
   encrypts :encrypted_credentials if Chatwoot.encryption_configured?
@@ -81,6 +83,8 @@ class OptimiaChannelConnection < ApplicationRecord
       display_name: display_name,
       phone_number: phone_number,
       state: state,
+      lifecycle_status: lifecycle_status,
+      inbox_recreation_enabled: inbox_recreation_enabled,
       channel_type: channel_type,
       provider: provider,
       inbox_id: inbox_id,

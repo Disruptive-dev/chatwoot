@@ -20,6 +20,9 @@ const pollTimer = ref(null);
 const countdownTimer = ref(null);
 const countdownSeconds = ref(0);
 const diagnosis = ref(null);
+const showDeleteModal = ref(false);
+const deleteInProgress = ref(false);
+const deleteError = ref(null);
 
 const activeConnection = useMapGetter('optimiaWhatsappConnections/getActiveConnection');
 const activeQr = useMapGetter('optimiaWhatsappConnections/getActiveQr');
@@ -29,6 +32,14 @@ const connectionId = computed(() => Number(route.params.connectionId));
 const isLoading = computed(() => uiFlags.value.isFetching || uiFlags.value.isUpdating);
 const qrImage = computed(() => activeQr.value?.image_base64 || '');
 const isReady = computed(() => activeConnection.value?.state === 'ready');
+const isArchived = computed(() =>
+  ['archived', 'inactive'].includes(activeConnection.value?.lifecycle_status)
+);
+const isLifecycleBlocked = computed(() =>
+  ['archived', 'inactive', 'deleting', 'deleted', 'error'].includes(
+    activeConnection.value?.lifecycle_status
+  )
+);
 const showQr = computed(() => qrImage.value && !isReady.value && ['qr_required', 'waiting_scan', 'waiting_qr', 'reconnecting', 'pairing'].includes(activeConnection.value?.state));
 const stateLabel = computed(() =>
   t(`OPTIMIA_CHANNEL_MANAGER.WHATSAPP.STATES.${activeConnection.value?.state}`, activeConnection.value?.state)
@@ -70,6 +81,8 @@ const startCountdown = seconds => {
 };
 
 const pollStatus = async () => {
+  if (isLifecycleBlocked.value) return;
+
   try {
     const connection = await store.dispatch(
       'optimiaWhatsappConnections/refreshStatus',
@@ -125,6 +138,60 @@ const disconnect = async () => {
   }
 };
 
+const deactivate = async () => {
+  if (!window.confirm(t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.CONFIRM_DEACTIVATE'))) return;
+
+  try {
+    clearTimers();
+    await store.dispatch('optimiaWhatsappConnections/deactivate', connectionId.value);
+  } catch (error) {
+    useAlert(parseAPIErrorResponse(error) || t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ERRORS.GENERIC'));
+  }
+};
+
+const restore = async () => {
+  try {
+    await store.dispatch('optimiaWhatsappConnections/restore', connectionId.value);
+    if (!isReady.value) {
+      await loadQrFlow();
+    }
+  } catch (error) {
+    useAlert(parseAPIErrorResponse(error) || t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ERRORS.GENERIC'));
+  }
+};
+
+const openDeleteModal = () => {
+  deleteError.value = null;
+  showDeleteModal.value = true;
+};
+
+const closeDeleteModal = () => {
+  if (deleteInProgress.value) return;
+  showDeleteModal.value = false;
+  deleteError.value = null;
+};
+
+const confirmDelete = async () => {
+  if (deleteInProgress.value) return;
+
+  deleteInProgress.value = true;
+  deleteError.value = null;
+
+  try {
+    clearTimers();
+    await store.dispatch('optimiaWhatsappConnections/deleteConnection', {
+      id: connectionId.value,
+      deleteInbox: true,
+    });
+    showDeleteModal.value = false;
+  } catch (error) {
+    deleteError.value =
+      parseAPIErrorResponse(error) || t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ERRORS.GENERIC');
+  } finally {
+    deleteInProgress.value = false;
+  }
+};
+
 const syncWebhook = async () => {
   try {
     await store.dispatch('optimiaWhatsappConnections/syncWebhook', connectionId.value);
@@ -144,9 +211,10 @@ const runDiagnose = async () => {
 
 onMounted(async () => {
   await store.dispatch('optimiaWhatsappConnections/fetchConnection', connectionId.value);
+  if (isLifecycleBlocked.value) return;
   if (isReady.value) return;
 
-  const statesWithQr = ['draft', 'creating', 'created', 'waiting_qr', 'disconnected', 'error', 'failed', 'reconnecting', 'qr_required'];
+  const statesWithQr = ['draft', 'creating', 'created', 'waiting_qr', 'error', 'failed', 'reconnecting', 'qr_required'];
   if (statesWithQr.includes(activeConnection.value?.state)) {
     await loadQrFlow();
     return;
@@ -201,6 +269,10 @@ onBeforeUnmount(() => {
             <dd class="text-n-slate-12">{{ formatDate(activeConnection.last_state_change_at) }}</dd>
           </div>
           <div class="flex justify-between gap-4">
+            <dt class="text-n-slate-11">{{ $t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.LIST.LIFECYCLE') }}</dt>
+            <dd class="text-n-slate-12">{{ activeConnection.lifecycle_status }}</dd>
+          </div>
+          <div class="flex justify-between gap-4">
             <dt class="text-n-slate-11">{{ $t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.LIST.INBOX') }}</dt>
             <dd class="text-n-slate-12">{{ activeConnection.inbox_id || '—' }}</dd>
           </div>
@@ -212,34 +284,88 @@ onBeforeUnmount(() => {
 
         <div class="mt-6 flex flex-wrap gap-3">
           <NextButton
-            :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.VIEW')"
-            @click="pollStatus"
+            v-if="isArchived"
+            :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.RESTORE')"
+            @click="restore"
           />
+          <template v-if="!isLifecycleBlocked">
+            <NextButton
+              :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.VIEW')"
+              @click="pollStatus"
+            />
+            <NextButton
+              :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.RECONNECT')"
+              @click="reconnect"
+            />
+            <NextButton
+              faded
+              :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.REFRESH_QR')"
+              @click="refreshQr"
+            />
+            <NextButton
+              faded
+              :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.SYNC_WEBHOOK')"
+              @click="syncWebhook"
+            />
+            <NextButton
+              faded
+              :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.DIAGNOSE')"
+              @click="runDiagnose"
+            />
+            <NextButton
+              faded
+              :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.DEACTIVATE')"
+              @click="deactivate"
+            />
+            <NextButton
+              ruby
+              faded
+              :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.DISCONNECT')"
+              @click="disconnect"
+            />
+          </template>
           <NextButton
-            :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.RECONNECT')"
-            @click="reconnect"
-          />
-          <NextButton
-            faded
-            :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.REFRESH_QR')"
-            @click="refreshQr"
-          />
-          <NextButton
-            faded
-            :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.SYNC_WEBHOOK')"
-            @click="syncWebhook"
-          />
-          <NextButton
-            faded
-            :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.DIAGNOSE')"
-            @click="runDiagnose"
-          />
-          <NextButton
+            v-if="!activeConnection.lifecycle_status || activeConnection.lifecycle_status !== 'deleted'"
             ruby
-            faded
-            :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.DISCONNECT')"
-            @click="disconnect"
+            :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.DELETE_PERMANENTLY')"
+            :disabled="deleteInProgress"
+            @click="openDeleteModal"
           />
+        </div>
+      </div>
+
+      <div
+        v-if="showDeleteModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-n-alpha-black1/40 p-4"
+      >
+        <div class="w-full max-w-lg rounded-2xl border border-n-weak bg-n-solid-1 p-6 shadow-xl">
+          <h2 class="text-lg font-medium text-n-slate-12">
+            {{ $t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.DELETE_MODAL_TITLE') }}
+          </h2>
+          <p class="mt-2 text-sm text-n-slate-11">
+            {{ $t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.DELETE_MODAL_BODY', { name: activeConnection.display_name }) }}
+          </p>
+          <p
+            v-if="deleteError"
+            class="mt-3 rounded-xl bg-n-ruby-9/10 px-4 py-3 text-sm text-n-ruby-11"
+          >
+            {{ deleteError }}
+          </p>
+          <div class="mt-6 flex justify-end gap-3">
+            <NextButton
+              faded
+              :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.CANCEL')"
+              :disabled="deleteInProgress"
+              @click="closeDeleteModal"
+            />
+            <NextButton
+              ruby
+              :label="$t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.ACTIONS.CONFIRM_DELETE')"
+              :is-loading="deleteInProgress"
+              :disabled="deleteInProgress"
+              @click="confirmDelete"
+            />
+          </div>
         </div>
       </div>
 

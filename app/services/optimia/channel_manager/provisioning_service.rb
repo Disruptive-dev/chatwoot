@@ -11,6 +11,7 @@ module Optimia
 
       def perform!
         return @connection.inbox if @connection.inbox_id.present? && @connection.inbox.present?
+        return nil unless @connection.provisioning_allowed?
 
         inbox = find_existing_inbox || create_inbox!
         @connection.update!(inbox: inbox, updated_by: @performed_by)

@@ -53,6 +53,10 @@ module Integrations
         request_json(:delete, "/instance/logout/#{encoded_instance_name(instance_name)}")
       end
 
+      def delete_instance(instance_name)
+        request_json(:delete, "/instance/delete/#{encoded_instance_name(instance_name)}")
+      end
+
       def set_chatwoot(instance_name, chatwoot_config:)
         request_json(:post, "/chatwoot/set/#{encoded_instance_name(instance_name)}", body: chatwoot_config)
       end

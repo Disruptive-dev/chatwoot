@@ -7,8 +7,13 @@ class DeleteObjectJob < ApplicationJob
     # Pre-purge heavy associations for large objects to avoid
     # timeouts & race conditions due to destroy_async fan-out.
     purge_heavy_associations(object)
+    if object.is_a?(Inbox) && user.present?
+      Thread.current[:optimia_inbox_destroy_performed_by] = user
+    end
     object.destroy!
     process_post_deletion_tasks(object, user, ip)
+  ensure
+    Thread.current[:optimia_inbox_destroy_performed_by] = nil if object.is_a?(Inbox)
   end
 
   def process_post_deletion_tasks(object, user, ip); end

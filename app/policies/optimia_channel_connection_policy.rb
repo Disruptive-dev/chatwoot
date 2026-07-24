@@ -45,6 +45,18 @@ class OptimiaChannelConnectionPolicy < ApplicationPolicy
     update?
   end
 
+  def deactivate?
+    update?
+  end
+
+  def restore?
+    update?
+  end
+
+  def destroy?
+    update?
+  end
+
   class Scope < Scope
     def resolve
       return scope.none unless Integrations::Optimia::ChannelManager::Feature.enabled_for_account?(account)

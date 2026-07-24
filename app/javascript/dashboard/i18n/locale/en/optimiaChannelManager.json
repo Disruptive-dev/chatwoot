@@ -12,6 +12,7 @@
         "HEALTH": "Health",
         "PHONE": "Phone number",
         "INBOX": "Inbox",
+        "LIFECYCLE": "Administrative status",
         "LAST_CHECK": "Last check",
         "RECONNECTS": "Recent reconnects"
       },
@@ -33,13 +34,24 @@
       },
       "ACTIONS": {
         "RECONNECT": "Reconnect",
-        "DISCONNECT": "Disconnect",
+        "DISCONNECT": "Disconnect WhatsApp",
+        "DEACTIVATE": "Deactivate connection",
+        "DELETE_PERMANENTLY": "Delete connection permanently",
+        "RESTORE": "Restore connection",
         "VIEW": "View status",
         "REFRESH_QR": "Generate new QR",
         "SYNC_WEBHOOK": "Sync webhook",
         "DIAGNOSE": "Diagnose",
-        "CONFIRM_DISCONNECT": "Are you sure you want to disconnect this WhatsApp number?",
-        "CONFIRM_RECONNECT": "This will generate a new QR code. Continue?"
+        "CANCEL": "Cancel",
+        "CONFIRM_DELETE": "Delete permanently",
+        "DELETE_MODAL_TITLE": "Delete connection permanently",
+        "DELETE_MODAL_BODY": "This will remove the managed connection \"{name}\", its configuration, and the associated instance. Existing conversations follow Chatwoot inbox deletion policy.",
+        "CONFIRM_DISCONNECT": "Disconnect WhatsApp? This closes the WhatsApp session but keeps the inbox and its configuration.",
+        "CONFIRM_DEACTIVATE": "Deactivate this connection? Monitoring and automatic inbox recreation will stop. You can restore it later.",
+        "CONFIRM_RECONNECT": "This will generate a new QR code. Continue?",
+        "DISCONNECT_HELP": "Closes the WhatsApp session, but keeps the inbox and its configuration.",
+        "DEACTIVATE_HELP": "Stops the connection and prevents automatic recreation. It can be restored.",
+        "DELETE_HELP": "Removes the managed connection, its configuration, and the associated instance. Existing conversations follow Chatwoot inbox deletion policy."
       },
       "HEALTH": {
         "OPERATIONAL": "Operational",
