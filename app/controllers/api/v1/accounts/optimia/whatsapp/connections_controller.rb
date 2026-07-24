@@ -72,7 +72,7 @@ class Api::V1::Accounts::Optimia::Whatsapp::ConnectionsController < Api::V1::Acc
   private
 
   def ensure_feature_enabled!
-    return if Optimia::ChannelManager::Feature.enabled_for_account?(Current.account)
+    return if Integrations::Optimia::ChannelManager::Feature.enabled_for_account?(Current.account)
 
     render json: {
       error: I18n.t('optimia.whatsapp_connections.errors.feature_disabled'),

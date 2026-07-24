@@ -39,7 +39,7 @@ class OptimiaChannelConnectionPolicy < ApplicationPolicy
 
   class Scope < Scope
     def resolve
-      return scope.none unless Optimia::ChannelManager::Feature.enabled_for_account?(account)
+      return scope.none unless Integrations::Optimia::ChannelManager::Feature.enabled_for_account?(account)
 
       scope.where(account_id: account.id)
     end
@@ -48,7 +48,7 @@ class OptimiaChannelConnectionPolicy < ApplicationPolicy
   private
 
   def feature_enabled?
-    Optimia::ChannelManager::Feature.enabled_for_account?(account)
+    Integrations::Optimia::ChannelManager::Feature.enabled_for_account?(account)
   end
 
   def administrator?
