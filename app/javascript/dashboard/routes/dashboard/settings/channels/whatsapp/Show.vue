@@ -135,6 +135,12 @@ onBeforeUnmount(() => {
         <h1 class="text-lg font-medium text-n-slate-12">
           {{ activeConnection.display_name }}
         </h1>
+        <p
+          v-if="activeConnection.state === 'error' && activeConnection.status_message"
+          class="mt-2 rounded-xl bg-n-ruby-9/10 px-4 py-3 text-sm text-n-ruby-11"
+        >
+          {{ activeConnection.status_message }}
+        </p>
         <dl class="mt-4 grid gap-3 text-sm">
           <div class="flex justify-between gap-4">
             <dt class="text-n-slate-11">{{ $t('OPTIMIA_CHANNEL_MANAGER.WHATSAPP.LIST.STATUS') }}</dt>
