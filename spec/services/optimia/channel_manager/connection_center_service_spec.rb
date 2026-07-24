@@ -39,6 +39,56 @@ RSpec.describe Optimia::ChannelManager::ConnectionCenterService do
     end
   end
 
+  describe '#refresh_status! provisioning' do
+    let(:connection) do
+      create(
+        :optimia_channel_connection,
+        account: account,
+        state: 'waiting_scan',
+        external_instance_id: 'optimia-1-test',
+        phone_number: '+5491112345678'
+      )
+    end
+    let(:webhook_url) { 'https://evo.example.com/chatwoot/webhook/optimia-1-test' }
+    let(:sync_service) { instance_double(Optimia::ChannelManager::ChatwootWebhookSyncService) }
+
+    before do
+      allow(adapter).to receive(:fetch_status!).and_return(
+        Integrations::Optimia::ChannelManager::ProviderAdapter::StatusResult.new(
+          remote_state: 'open',
+          phone_number: '+5491112345678',
+          metadata: {}
+        )
+      )
+      allow(adapter).to receive(:configure_chatwoot!).and_return(success: true, status: 200, data: {})
+      allow(Optimia::ChannelManager::ChatwootWebhookSyncService).to receive(:new).and_return(sync_service)
+      allow(sync_service).to receive(:perform!).and_return(
+        inbox_id: 1,
+        webhook_url: webhook_url,
+        source: 'derived',
+        changed: true
+      )
+    end
+
+    it 'configures Evolution and syncs the API inbox webhook during ready transition' do
+      service.refresh_status!(connection)
+
+      expect(adapter).to have_received(:configure_chatwoot!).with(
+        hash_including(
+          connection: connection,
+          chatwoot_config: hash_including(
+            enabled: true,
+            accountId: account.id.to_s,
+            autoCreate: false,
+            number: '5491112345678'
+          )
+        )
+      )
+      expect(sync_service).to have_received(:perform!)
+      expect(connection.reload.state).to eq('ready')
+    end
+  end
+
   describe '#generate_qr!' do
     let(:connection) do
       create(

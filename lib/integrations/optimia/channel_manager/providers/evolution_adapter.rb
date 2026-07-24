@@ -101,7 +101,13 @@ module Integrations
             response = client.set_chatwoot(instance_name, chatwoot_config: chatwoot_config)
             raise_upstream_error!(response) if response[:error].present?
 
-            { success: true }
+            log_chatwoot_configuration(connection: connection, instance_name: instance_name, response: response)
+
+            {
+              success: true,
+              status: response[:status],
+              data: response[:data]
+            }
           end
 
           private
@@ -213,6 +219,21 @@ module Integrations
               response[:error],
               error_code: response[:error_code] || Integrations::Evolution::Errors::ERROR_CODES[:connection_failed],
               config_sources: {}
+            )
+          end
+
+          def log_chatwoot_configuration(connection:, instance_name:, response:)
+            Rails.logger.info(
+              {
+                event: 'optimia_evolution_chatwoot_configured',
+                connection_id: connection.id,
+                account_id: connection.account_id,
+                instance_name: instance_name,
+                provider: connection.provider,
+                endpoint: '/chatwoot/set',
+                status: response[:status],
+                error_code: response[:error_code]
+              }.compact.to_json
             )
           end
         end

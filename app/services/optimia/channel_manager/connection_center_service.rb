@@ -252,10 +252,13 @@ module Optimia
         )
 
         adapter = provider_for(connection)
+        chatwoot_config = chatwoot_config_for(inbox, connection)
         adapter.configure_chatwoot!(
           connection: connection,
-          chatwoot_config: chatwoot_config_for(inbox)
+          chatwoot_config: chatwoot_config
         )
+
+        ChatwootWebhookSyncService.new(connection: connection, performed_by: @performed_by).perform!
 
         connection.transition_to!('ready') if connection.can_transition_to?('ready')
         AuditLogger.log(
@@ -265,10 +268,12 @@ module Optimia
           to_state: connection.state,
           metadata: { inbox_id: inbox.id }
         )
+      rescue Optimia::ChannelManager::ChatwootWebhookSyncService::SyncError => e
+        handle_webhook_sync_error(connection, e)
       end
 
-      def chatwoot_config_for(inbox)
-        {
+      def chatwoot_config_for(inbox, connection)
+        config = {
           enabled: true,
           accountId: @account.id.to_s,
           token: chatwoot_api_token,
@@ -287,6 +292,11 @@ module Optimia
           logo: '',
           ignoreJids: []
         }
+
+        phone_number = connection.phone_number
+        config[:number] = phone_number.delete_prefix('+') if phone_number.present?
+
+        config
       end
 
       def chatwoot_public_url
@@ -349,6 +359,17 @@ module Optimia
           metadata: { source_action: action, error: error.message }
         )
         raise ServiceError.new(error.message, error_code: error_code)
+      end
+
+      def handle_webhook_sync_error(connection, error)
+        connection.mark_error!(code: error.error_code, message: error.message)
+        AuditLogger.log(
+          connection: connection,
+          action: 'error',
+          performed_by: @performed_by,
+          metadata: { source_action: 'webhook_synced', error_code: error.error_code }
+        )
+        raise ServiceError.new(error.message, error_code: error.error_code, http_status: error.http_status)
       end
 
       def public_message_for(error)

@@ -13,6 +13,25 @@ namespace :optimia do
       exit 1
     end
 
+    desc 'Diagnose outbound Chatwoot ↔ Evolution wiring for a connection (no secrets printed)'
+    task :diagnose_outbound, [:connection_id] => :environment do |_task, args|
+      connection = OptimiaChannelConnection.find(args[:connection_id])
+      diagnosis = Optimia::ChannelManager::ChatwootWebhookSyncService.diagnose(connection: connection)
+      puts diagnosis.to_json
+    end
+
+    desc 'Sync Evolution webhook_url into provisioned API inboxes (idempotent)'
+    task sync_webhooks: :environment do
+      scope = OptimiaChannelConnection.where(state: %w[connected syncing ready]).where.not(inbox_id: nil)
+      results = scope.map do |connection|
+        Optimia::ChannelManager::ChatwootWebhookSyncService.new(connection: connection).perform!
+        { connection_id: connection.id, status: 'synced' }
+      rescue Optimia::ChannelManager::ChatwootWebhookSyncService::SyncError => e
+        { connection_id: connection.id, status: 'failed', error_code: e.error_code }
+      end
+      puts results.to_json
+    end
+
     desc 'Enable optimia_channel_manager feature for all accounts (staging bootstrap)'
     task enable_feature: :environment do
       count = 0

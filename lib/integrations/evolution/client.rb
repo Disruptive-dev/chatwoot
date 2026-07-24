@@ -57,6 +57,17 @@ module Integrations
         request_json(:post, "/chatwoot/set/#{encoded_instance_name(instance_name)}", body: chatwoot_config)
       end
 
+      def find_chatwoot(instance_name)
+        request_json(:get, "/chatwoot/find/#{encoded_instance_name(instance_name)}")
+      end
+
+      def self.chatwoot_webhook_url_for(instance_name, api_base_url: nil)
+        base = normalize_api_base_url(api_base_url || resolve_credentials[:api_base_url])
+        return nil if base.blank? || instance_name.blank?
+
+        "#{base}/chatwoot/webhook/#{ERB::Util.url_encode(instance_name.to_s)}"
+      end
+
       def health_check
         started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         result = fetch_instances
