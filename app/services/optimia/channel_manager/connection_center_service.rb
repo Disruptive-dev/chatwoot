@@ -280,7 +280,12 @@ module Optimia
           mergeBrazilContacts: true,
           importContacts: false,
           importMessages: false,
-          daysLimitImportMessages: 1
+          daysLimitImportMessages: 1,
+          signDelimiter: "\n",
+          autoCreate: false,
+          organization: @account.name.presence || 'OptimiA',
+          logo: '',
+          ignoreJids: []
         }
       end
 
