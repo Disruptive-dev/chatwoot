@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_30_061021) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_24_120001) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1048,6 +1048,73 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_30_061021) do
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
+  create_table "optimia_channel_connection_alerts", force: :cascade do |t|
+    t.bigint "optimia_channel_connection_id", null: false
+    t.bigint "account_id", null: false
+    t.string "alert_type", null: false
+    t.string "message", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "read_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "alert_type", "created_at"], name: "index_optimia_alerts_on_account_type_created"
+    t.index ["account_id"], name: "index_optimia_channel_connection_alerts_on_account_id"
+    t.index ["optimia_channel_connection_id"], name: "index_optimia_alerts_on_connection_id"
+  end
+
+  create_table "optimia_channel_connection_audits", force: :cascade do |t|
+    t.bigint "optimia_channel_connection_id", null: false
+    t.bigint "account_id", null: false
+    t.bigint "performed_by_id"
+    t.string "action", null: false
+    t.string "from_state"
+    t.string "to_state"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_optimia_channel_connection_audits_on_account_id"
+    t.index ["action"], name: "index_optimia_channel_connection_audits_on_action"
+    t.index ["created_at"], name: "index_optimia_channel_connection_audits_on_created_at"
+    t.index ["optimia_channel_connection_id"], name: "index_optimia_connection_audits_on_connection_id"
+    t.index ["performed_by_id"], name: "index_optimia_channel_connection_audits_on_performed_by_id"
+  end
+
+  create_table "optimia_channel_connections", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "inbox_id"
+    t.string "provider", default: "evolution", null: false
+    t.string "channel_type", default: "whatsapp", null: false
+    t.string "display_name", null: false
+    t.string "external_instance_id"
+    t.string "phone_number"
+    t.string "state", default: "draft", null: false
+    t.jsonb "connection_metadata", default: {}, null: false
+    t.text "encrypted_credentials"
+    t.datetime "qr_expires_at"
+    t.datetime "last_connected_at"
+    t.datetime "last_disconnected_at"
+    t.string "last_error_code"
+    t.string "last_error_message"
+    t.bigint "created_by_id"
+    t.bigint "updated_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "last_seen_at"
+    t.datetime "last_state_change_at"
+    t.datetime "last_error_at"
+    t.integer "reconnect_attempts_count", default: 0, null: false
+    t.integer "recent_reconnect_count", default: 0, null: false
+    t.datetime "last_health_check_at"
+    t.index ["account_id", "phone_number"], name: "index_optimia_connections_on_account_and_phone", unique: true, where: "(phone_number IS NOT NULL)"
+    t.index ["account_id"], name: "index_optimia_channel_connections_on_account_id"
+    t.index ["created_by_id"], name: "index_optimia_channel_connections_on_created_by_id"
+    t.index ["inbox_id"], name: "index_optimia_channel_connections_on_inbox_id"
+    t.index ["last_health_check_at"], name: "index_optimia_channel_connections_on_last_health_check_at"
+    t.index ["provider", "external_instance_id"], name: "index_optimia_connections_on_provider_and_external_instance", unique: true, where: "(external_instance_id IS NOT NULL)"
+    t.index ["state"], name: "index_optimia_channel_connections_on_state"
+    t.index ["updated_by_id"], name: "index_optimia_channel_connections_on_updated_by_id"
+  end
+
   create_table "platform_app_permissibles", force: :cascade do |t|
     t.bigint "platform_app_id", null: false
     t.string "permissible_type", null: false
@@ -1272,6 +1339,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_30_061021) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "inboxes", "portals"
+  add_foreign_key "optimia_channel_connection_alerts", "accounts"
+  add_foreign_key "optimia_channel_connection_alerts", "optimia_channel_connections"
+  add_foreign_key "optimia_channel_connection_audits", "accounts"
+  add_foreign_key "optimia_channel_connection_audits", "optimia_channel_connections"
+  add_foreign_key "optimia_channel_connection_audits", "users", column: "performed_by_id"
+  add_foreign_key "optimia_channel_connections", "accounts"
+  add_foreign_key "optimia_channel_connections", "inboxes"
+  add_foreign_key "optimia_channel_connections", "users", column: "created_by_id"
+  add_foreign_key "optimia_channel_connections", "users", column: "updated_by_id"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
       after(:insert).

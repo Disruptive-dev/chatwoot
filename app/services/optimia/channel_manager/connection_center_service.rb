@@ -150,10 +150,13 @@ module Optimia
       end
 
       def request_pairing_code!(connection, phone_number:)
-        raise ServiceError.new('Pairing code not supported', error_code: 'pairing_not_supported') unless provider_for(connection).supports_pairing_code?
+        unless provider_for(connection).supports_pairing_code?
+          raise ServiceError.new('Pairing code not supported',
+                                 error_code: 'pairing_not_supported')
+        end
         raise ServiceError.new('Phone number required', error_code: 'phone_number_required') if phone_number.blank?
 
-        adapter = provider_for(connection)
+        provider_for(connection)
         ensure_instance_provisioned!(connection)
         client = Integrations::Evolution::Client.new
         response = client.connect_instance(connection.external_instance_id, number: phone_number)
@@ -297,7 +300,7 @@ module Optimia
           accountId: @account.id.to_s,
           token: chatwoot_api_token,
           url: chatwoot_public_url,
-          signMsg: true,
+          signMsg: sign_msg_enabled?(connection),
           reopenConversation: true,
           conversationPending: false,
           nameInbox: inbox.name,
@@ -323,6 +326,19 @@ module Optimia
         url ||= GlobalConfig.get('FRONTEND_URL')['FRONTEND_URL']
         url ||= ENV.fetch('FRONTEND_URL', nil)
         url.to_s.chomp('/')
+      end
+
+      def sign_msg_enabled?(connection)
+        metadata_flag = connection.connection_metadata&.dig('sign_msg_enabled')
+        return ActiveModel::Type::Boolean.new.cast(metadata_flag) unless metadata_flag.nil?
+
+        raw = ENV.fetch('OPTIMIA_EVOLUTION_SIGN_MSG', nil).presence
+        raw ||= GlobalConfig.get('OPTIMIA_EVOLUTION_SIGN_MSG')['OPTIMIA_EVOLUTION_SIGN_MSG']
+        return false if raw.nil?
+
+        ActiveModel::Type::Boolean.new.cast(raw)
+      rescue StandardError
+        false
       end
 
       def chatwoot_api_token

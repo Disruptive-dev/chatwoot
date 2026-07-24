@@ -80,12 +80,24 @@ RSpec.describe Optimia::ChannelManager::ConnectionCenterService do
             enabled: true,
             accountId: account.id.to_s,
             autoCreate: false,
+            signMsg: false,
             number: '5491112345678'
           )
         )
       )
       expect(sync_service).to have_received(:perform!)
       expect(connection.reload.state).to eq('ready')
+    end
+
+    it 'enables signMsg only when explicitly configured' do
+      allow(ENV).to receive(:fetch).and_call_original
+      allow(ENV).to receive(:fetch).with('OPTIMIA_EVOLUTION_SIGN_MSG', anything).and_return('true')
+
+      service.refresh_status!(connection)
+
+      expect(adapter).to have_received(:configure_chatwoot!).with(
+        hash_including(chatwoot_config: hash_including(signMsg: true))
+      )
     end
   end
 
