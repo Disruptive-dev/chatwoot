@@ -13,8 +13,11 @@ module OptimiaChannelConnectionStateMachine
     connected
     syncing
     ready
-    disconnected
     reconnecting
+    qr_required
+    disconnected
+    degraded
+    failed
     error
     disabled
   ].freeze
@@ -23,17 +26,20 @@ module OptimiaChannelConnectionStateMachine
 
   TRANSITIONS = {
     'draft' => %w[creating disabled],
-    'creating' => %w[created error draft],
-    'created' => %w[waiting_qr error disabled],
-    'waiting_qr' => %w[waiting_scan pairing error disabled],
-    'waiting_scan' => %w[pairing connected error disconnected disabled],
-    'pairing' => %w[connected waiting_scan error disconnected disabled],
-    'connected' => %w[syncing error disconnected disabled],
-    'syncing' => %w[ready error disconnected disabled],
-    'ready' => %w[disconnected reconnecting error disabled],
-    'disconnected' => %w[reconnecting draft error disabled],
-    'reconnecting' => %w[waiting_qr waiting_scan connected error disabled],
-    'error' => %w[draft reconnecting disabled],
+    'creating' => %w[created error failed draft],
+    'created' => %w[waiting_qr error failed disabled],
+    'waiting_qr' => %w[waiting_scan pairing error failed disabled],
+    'waiting_scan' => %w[pairing connected error failed disconnected disabled],
+    'pairing' => %w[connected waiting_scan error failed disconnected disabled],
+    'connected' => %w[syncing error failed disconnected disabled],
+    'syncing' => %w[ready error failed disconnected disabled],
+    'ready' => %w[disconnected reconnecting degraded qr_required failed error disabled],
+    'reconnecting' => %w[ready waiting_qr waiting_scan connected degraded qr_required failed error disconnected disabled],
+    'qr_required' => %w[waiting_qr reconnecting disconnected failed disabled],
+    'disconnected' => %w[reconnecting draft qr_required failed disabled],
+    'degraded' => %w[ready reconnecting qr_required failed disconnected disabled],
+    'failed' => %w[reconnecting qr_required draft disabled error],
+    'error' => %w[draft reconnecting failed disabled qr_required],
     'disabled' => %w[draft]
   }.freeze
 
@@ -48,7 +54,9 @@ module OptimiaChannelConnectionStateMachine
     raise ArgumentError, "Invalid transition from #{state} to #{new_state}" unless can_transition_to?(new_state)
 
     previous_state = state
-    update!(state: new_state)
+    updates = { state: new_state }
+    updates[:last_state_change_at] = Time.current if has_attribute?(:last_state_change_at)
+    update!(updates)
     yield(previous_state, new_state) if block_given?
     [previous_state, new_state]
   end

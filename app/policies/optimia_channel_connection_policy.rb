@@ -37,6 +37,14 @@ class OptimiaChannelConnectionPolicy < ApplicationPolicy
     update?
   end
 
+  def diagnose?
+    show?
+  end
+
+  def sync_webhook?
+    update?
+  end
+
   class Scope < Scope
     def resolve
       return scope.none unless Integrations::Optimia::ChannelManager::Feature.enabled_for_account?(account)

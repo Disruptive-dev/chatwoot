@@ -86,6 +86,23 @@ export const actions = {
     commit('SET_ACTIVE_QR', null);
     return data.data;
   },
+
+  diagnose: async ({ commit }, id) => {
+    const { data } = await OptimiaWhatsappConnectionsAPI.diagnose(id);
+    return data.data;
+  },
+
+  syncWebhook: async ({ commit }, id) => {
+    commit('SET_UI_FLAG', { isUpdating: true });
+    try {
+      const { data } = await OptimiaWhatsappConnectionsAPI.syncWebhook(id);
+      commit('UPSERT_RECORD', data.data);
+      commit('SET_ACTIVE_CONNECTION', data.data);
+      return data.data;
+    } finally {
+      commit('SET_UI_FLAG', { isUpdating: false });
+    }
+  },
 };
 
 export const mutations = {

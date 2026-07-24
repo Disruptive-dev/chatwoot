@@ -6,11 +6,22 @@ class OptimiaChannelConnectionAudit < ApplicationRecord
     instance_provisioned
     qr_generated
     status_checked
+    health_checked
+    state_changed
     connected
     provisioning_started
     ready
     disconnected
     reconnected
+    reconnect_started
+    reconnect_succeeded
+    reconnect_failed
+    qr_required
+    qr_refreshed
+    webhook_synced
+    webhook_sync_failed
+    connection_degraded
+    connection_recovered
     error
     disabled
   ].freeze

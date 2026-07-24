@@ -35,6 +35,14 @@ class OptimiaWhatsappConnectionsAPI extends ApiClient {
     return axios.post(`${this.url}/${id}/disconnect`);
   }
 
+  diagnose(id) {
+    return axios.get(`${this.url}/${id}/diagnose`);
+  }
+
+  syncWebhook(id) {
+    return axios.post(`${this.url}/${id}/sync_webhook`);
+  }
+
   requestPairingCode(id, phoneNumber) {
     return axios.post(`${this.url}/${id}/pairing_code`, {
       phone_number: phoneNumber,

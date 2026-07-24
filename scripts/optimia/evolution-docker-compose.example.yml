@@ -1,0 +1,45 @@
+# Evolution API — pinned reference compose (staging/production)
+# Validated OptimiA stack: Evolution API v2.3.7
+# Do NOT use :latest during pilot/production rollout.
+
+services:
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.7
+    # linux/amd64 digest reference (verify before prod deploy):
+    # sha256:456b4104b0ddffbb092d6b3c0560a4ae86fc3e014e885b882aca4b1b371dfc81
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    environment:
+      SERVER_URL: https://evo-api.example.com
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      DATABASE_ENABLED: 'true'
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${EVOLUTION_POSTGRES_USER}:${EVOLUTION_POSTGRES_PASSWORD}@evolution-postgres:5432/${EVOLUTION_POSTGRES_DB}
+      CACHE_REDIS_ENABLED: 'true'
+      CACHE_REDIS_URI: redis://:${EVOLUTION_REDIS_PASSWORD}@evolution-redis:6379/0
+      CHATWOOT_ENABLED: 'true'
+    volumes:
+      - evolution_instances:/evolution/instances
+
+  evolution-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${EVOLUTION_POSTGRES_DB}
+      POSTGRES_USER: ${EVOLUTION_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${EVOLUTION_POSTGRES_PASSWORD}
+    volumes:
+      - evolution_postgres_data:/var/lib/postgresql/data
+
+  evolution-redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--requirepass', '${EVOLUTION_REDIS_PASSWORD}']
+    volumes:
+      - evolution_redis_data:/data
+
+volumes:
+  evolution_instances:
+  evolution_postgres_data:
+  evolution_redis_data:

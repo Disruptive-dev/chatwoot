@@ -83,6 +83,14 @@ module Optimia
 
         AuditLogger.log(
           connection: connection,
+          action: 'qr_refreshed',
+          performed_by: @performed_by,
+          to_state: connection.state,
+          metadata: { pairing_code_available: qr.pairing_code.present? }
+        )
+
+        AuditLogger.log(
+          connection: connection,
           action: 'qr_generated',
           performed_by: @performed_by,
           to_state: connection.state,
@@ -160,6 +168,17 @@ module Optimia
             pairing_code: pairing_code
           )
         }
+      end
+
+      def diagnose_connection(connection)
+        { data: HealthMonitorService.diagnose(connection: connection) }
+      end
+
+      def sync_webhook!(connection)
+        result = ChatwootWebhookSyncService.new(connection: connection, performed_by: @performed_by).perform!
+        { data: connection.reload.public_attributes.merge(webhook_sync: result) }
+      rescue Optimia::ChannelManager::ChatwootWebhookSyncService::SyncError => e
+        handle_webhook_sync_error(connection, e)
       end
 
       private
@@ -365,9 +384,9 @@ module Optimia
         connection.mark_error!(code: error.error_code, message: error.message)
         AuditLogger.log(
           connection: connection,
-          action: 'error',
+          action: 'webhook_sync_failed',
           performed_by: @performed_by,
-          metadata: { source_action: 'webhook_synced', error_code: error.error_code }
+          metadata: { error_code: error.error_code }
         )
         raise ServiceError.new(error.message, error_code: error.error_code, http_status: error.http_status)
       end

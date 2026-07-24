@@ -13,7 +13,7 @@ module Optimia
         end
       end
 
-      READY_STATES = %w[connected syncing ready].freeze
+      READY_STATES = %w[connected syncing ready reconnecting degraded qr_required].freeze
 
       def initialize(connection:, performed_by: nil, resolver: nil)
         @connection = connection
@@ -89,7 +89,7 @@ module Optimia
       end
 
       def self.ready_for_outbound?(connection, channel)
-        connection.state == 'ready' &&
+        %w[ready reconnecting degraded].include?(connection.state) &&
           channel.is_a?(Channel::Api) &&
           channel.webhook_url.present? &&
           connection.external_instance_id.present?

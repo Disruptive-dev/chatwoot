@@ -12,6 +12,13 @@ class OptimiaChannelConnection < ApplicationRecord
   belongs_to :updated_by, class_name: 'User', optional: true
 
   has_many :optimia_channel_connection_audits, dependent: :destroy_async
+  has_many :optimia_channel_connection_alerts, dependent: :destroy_async
+
+  scope :monitorable, lambda {
+    where.not(state: 'disabled')
+         .where.not(external_instance_id: nil)
+         .where(state: Optimia::ChannelManager::HealthMonitorService::MONITORABLE_STATES)
+  }
 
   encrypts :encrypted_credentials if Chatwoot.encryption_configured?
 
@@ -57,9 +64,11 @@ class OptimiaChannelConnection < ApplicationRecord
   def mark_error!(code:, message:)
     update!(
       last_error_code: code,
-      last_error_message: message
+      last_error_message: message,
+      last_error_at: Time.current
     )
-    transition_to!('error') if can_transition_to?('error')
+    target_state = can_transition_to?('failed') ? 'failed' : 'error'
+    transition_to!(target_state) if can_transition_to?(target_state)
   end
 
   def clear_error!
@@ -82,7 +91,7 @@ class OptimiaChannelConnection < ApplicationRecord
       status_message: public_status_message,
       created_at: created_at,
       updated_at: updated_at
-    }
+    }.merge(Optimia::ChannelManager::HealthPresenter.public_health_attributes(self))
   end
 
   def public_error_code
@@ -93,7 +102,7 @@ class OptimiaChannelConnection < ApplicationRecord
 
   def public_status_message
     return I18n.t('optimia.whatsapp_connections.status.ready') if state == 'ready'
-    return last_error_message if state == 'error' && last_error_message.present?
+    return last_error_message if %w[error failed].include?(state) && last_error_message.present?
 
     I18n.t("optimia.whatsapp_connections.status.#{state}", default: state.humanize)
   end

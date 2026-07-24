@@ -44,6 +44,8 @@ module Redis::RedisKeys
   SLACK_MESSAGE_MUTEX = 'SLACK_MESSAGE_LOCK::%<conversation_id>s::%<reference_id>s'.freeze
   EMAIL_MESSAGE_MUTEX = 'EMAIL_CHANNEL_LOCK::%<inbox_id>s'.freeze
   CRM_PROCESS_MUTEX = 'CRM_PROCESS_MUTEX::%<hook_id>s'.freeze
+  OPTIMIA_CHANNEL_MONITOR_LOCK = 'OPTIMIA_CHANNEL_MONITOR_LOCK::%<connection_id>d'.freeze
+  OPTIMIA_CHANNEL_ALERT_COOLDOWN = 'OPTIMIA_CHANNEL_ALERT_COOLDOWN::%<connection_id>d::%<alert_type>s'.freeze
 
   ## Auto Assignment Keys
   # Track conversation assignments to agents for rate limiting

@@ -9,8 +9,11 @@
         "EMPTY": "You don't have any WhatsApp numbers connected yet.",
         "CONNECT_BUTTON": "Connect number",
         "STATUS": "Status",
+        "HEALTH": "Health",
         "PHONE": "Phone number",
-        "INBOX": "Inbox"
+        "INBOX": "Inbox",
+        "LAST_CHECK": "Last check",
+        "RECONNECTS": "Recent reconnects"
       },
       "WIZARD": {
         "TITLE": "Connect WhatsApp number",
@@ -31,7 +34,26 @@
       "ACTIONS": {
         "RECONNECT": "Reconnect",
         "DISCONNECT": "Disconnect",
-        "VIEW": "View"
+        "VIEW": "View status",
+        "REFRESH_QR": "Generate new QR",
+        "SYNC_WEBHOOK": "Sync webhook",
+        "DIAGNOSE": "Diagnose",
+        "CONFIRM_DISCONNECT": "Are you sure you want to disconnect this WhatsApp number?",
+        "CONFIRM_RECONNECT": "This will generate a new QR code. Continue?"
+      },
+      "HEALTH": {
+        "OPERATIONAL": "Operational",
+        "RECONNECTING": "Reconnecting",
+        "QR_REQUIRED": "QR required",
+        "DEGRADED": "Degraded",
+        "DISCONNECTED": "Disconnected",
+        "ERROR": "Error"
+      },
+      "DETAILS": {
+        "LAST_CONNECTED": "Last connected",
+        "LAST_CHECK": "Last verification",
+        "LAST_STATE_CHANGE": "Last state change",
+        "WEBHOOK": "Webhook configured"
       },
       "STATES": {
         "draft": "Draft",
@@ -45,6 +67,9 @@
         "ready": "Ready",
         "disconnected": "Disconnected",
         "reconnecting": "Reconnecting",
+        "qr_required": "QR required",
+        "degraded": "Degraded",
+        "failed": "Failed",
         "error": "Error",
         "disabled": "Disabled"
       },

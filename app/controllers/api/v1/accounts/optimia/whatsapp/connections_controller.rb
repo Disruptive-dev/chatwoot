@@ -68,6 +68,20 @@ class Api::V1::Accounts::Optimia::Whatsapp::ConnectionsController < Api::V1::Acc
     render_service_error(e)
   end
 
+  def diagnose
+    authorize(@connection)
+    result = service.diagnose_connection(@connection)
+    render json: result
+  end
+
+  def sync_webhook
+    authorize(@connection)
+    result = service.sync_webhook!(@connection)
+    render json: result
+  rescue Optimia::ChannelManager::ConnectionCenterService::ServiceError => e
+    render_service_error(e)
+  end
+
   private
 
   def ensure_feature_enabled!

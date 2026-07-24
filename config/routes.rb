@@ -368,10 +368,12 @@ Rails.application.routes.draw do
               resources :connections, only: [:index, :create, :show] do
                 member do
                   get :status
+                  get :diagnose
                   post :qr
                   post :reconnect
                   post :disconnect
                   post :pairing_code
+                  post :sync_webhook
                 end
               end
             end
