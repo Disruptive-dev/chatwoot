@@ -54,7 +54,7 @@ jobs:
           fi
           echo "STAGING_TAG=${TAG}" >> $GITHUB_ENV
           echo "FRONTEND_URL_BUILD=${FRONTEND_URL}" >> $GITHUB_ENV
-          echo "Building ghcr.io/disruptive-dev/chatwoot:${TAG}"
+          echo "Building ghcr.io/pablo-paez-dev/chatwoot:${TAG}"
 
       - name: Build and push OptimiA staging image
         uses: docker/build-push-action@v6
