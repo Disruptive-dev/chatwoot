@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_24_120001) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_24_210000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1125,6 +1125,105 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_24_120001) do
     t.index ["updated_by_id"], name: "index_optimia_channel_connections_on_updated_by_id"
   end
 
+  create_table "optimia_deployment_records", force: :cascade do |t|
+    t.string "version", null: false
+    t.string "commit_sha"
+    t.string "image_digest"
+    t.string "image_tag"
+    t.string "environment", default: "staging"
+    t.string "status", default: "published"
+    t.string "server_name"
+    t.datetime "deployed_at"
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["deployed_at"], name: "index_optimia_deployment_records_on_deployed_at"
+    t.index ["version"], name: "index_optimia_deployment_records_on_version"
+  end
+
+  create_table "optimia_technical_alerts", force: :cascade do |t|
+    t.string "alert_type", null: false
+    t.string "component", null: false
+    t.string "severity", default: "info", null: false
+    t.string "status", default: "open", null: false
+    t.text "message"
+    t.jsonb "metadata", default: {}
+    t.datetime "opened_at", null: false
+    t.datetime "acknowledged_at"
+    t.datetime "resolved_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["alert_type"], name: "index_optimia_technical_alerts_on_alert_type"
+    t.index ["alert_type"], name: "index_optimia_technical_alerts_unique_open", unique: true, where: "((status)::text = 'open'::text)"
+    t.index ["component"], name: "index_optimia_technical_alerts_on_component"
+    t.index ["opened_at"], name: "index_optimia_technical_alerts_on_opened_at"
+    t.index ["severity"], name: "index_optimia_technical_alerts_on_severity"
+    t.index ["status"], name: "index_optimia_technical_alerts_on_status"
+  end
+
+  create_table "optimia_technical_health_checks", force: :cascade do |t|
+    t.string "component", null: false
+    t.string "status", default: "unknown", null: false
+    t.integer "latency_ms", default: 0
+    t.string "version"
+    t.integer "uptime_seconds"
+    t.integer "error_count", default: 0
+    t.jsonb "metadata", default: {}
+    t.datetime "checked_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["checked_at"], name: "index_optimia_technical_health_checks_on_checked_at"
+    t.index ["component", "checked_at"], name: "idx_on_component_checked_at_4575168d6f"
+    t.index ["component"], name: "index_optimia_technical_health_checks_on_component"
+    t.index ["status"], name: "index_optimia_technical_health_checks_on_status"
+  end
+
+  create_table "optimia_technical_incidents", force: :cascade do |t|
+    t.string "component", null: false
+    t.string "status", default: "open", null: false
+    t.text "summary"
+    t.text "root_cause"
+    t.text "action_taken"
+    t.string "responsible"
+    t.datetime "started_at", null: false
+    t.datetime "detected_at"
+    t.datetime "acknowledged_at"
+    t.datetime "resolved_at"
+    t.integer "duration_seconds"
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["component"], name: "index_optimia_technical_incidents_on_component"
+    t.index ["started_at"], name: "index_optimia_technical_incidents_on_started_at"
+    t.index ["status"], name: "index_optimia_technical_incidents_on_status"
+  end
+
+  create_table "optimia_technical_metric_snapshots", force: :cascade do |t|
+    t.datetime "recorded_at", null: false
+    t.jsonb "metrics", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["recorded_at"], name: "index_optimia_technical_metric_snapshots_on_recorded_at"
+  end
+
+  create_table "optimia_technical_timeline_events", force: :cascade do |t|
+    t.bigint "optimia_channel_connection_id"
+    t.bigint "account_id"
+    t.string "component", null: false
+    t.string "event_type", null: false
+    t.string "summary", null: false
+    t.jsonb "metadata", default: {}
+    t.datetime "occurred_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_optimia_technical_timeline_events_on_account_id"
+    t.index ["component"], name: "index_optimia_technical_timeline_events_on_component"
+    t.index ["event_type"], name: "index_optimia_technical_timeline_events_on_event_type"
+    t.index ["occurred_at"], name: "index_optimia_technical_timeline_events_on_occurred_at"
+    t.index ["optimia_channel_connection_id", "occurred_at"], name: "index_optimia_technical_timeline_on_connection_and_time"
+    t.index ["optimia_channel_connection_id"], name: "idx_on_optimia_channel_connection_id_20b484b069"
+  end
+
   create_table "platform_app_permissibles", force: :cascade do |t|
     t.bigint "platform_app_id", null: false
     t.string "permissible_type", null: false
@@ -1358,6 +1457,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_24_120001) do
   add_foreign_key "optimia_channel_connections", "inboxes"
   add_foreign_key "optimia_channel_connections", "users", column: "created_by_id"
   add_foreign_key "optimia_channel_connections", "users", column: "updated_by_id"
+  add_foreign_key "optimia_technical_timeline_events", "accounts"
+  add_foreign_key "optimia_technical_timeline_events", "optimia_channel_connections"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
       after(:insert).

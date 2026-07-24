@@ -46,6 +46,7 @@ module Redis::RedisKeys
   CRM_PROCESS_MUTEX = 'CRM_PROCESS_MUTEX::%<hook_id>s'.freeze
   OPTIMIA_CHANNEL_MONITOR_LOCK = 'OPTIMIA_CHANNEL_MONITOR_LOCK::%<connection_id>d'.freeze
   OPTIMIA_CHANNEL_ALERT_COOLDOWN = 'OPTIMIA_CHANNEL_ALERT_COOLDOWN::%<connection_id>d::%<alert_type>s'.freeze
+  OPTIMIA_TECHNICAL_HEALTH_COLLECT_LOCK = 'OPTIMIA_TECHNICAL_HEALTH_COLLECT_LOCK'.freeze
 
   ## Auto Assignment Keys
   # Track conversation assignments to agents for rate limiting

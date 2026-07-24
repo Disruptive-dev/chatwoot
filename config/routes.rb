@@ -632,6 +632,16 @@ Rails.application.routes.draw do
   require 'sidekiq/web'
   require 'sidekiq/cron/web'
 
+  namespace :internal do
+    get 'health', to: 'health#index'
+    get 'health/redis', to: 'health#redis'
+    get 'health/postgres', to: 'health#postgres'
+    get 'health/evolution', to: 'health#evolution'
+    get 'health/webhooks', to: 'health#webhooks'
+    get 'health/sidekiq', to: 'health#sidekiq'
+    get 'health/storage', to: 'health#storage'
+  end
+
   devise_for :super_admins, path: 'super_admin', controllers: { sessions: 'super_admin/devise/sessions' }
   devise_scope :super_admin do
     get 'super_admin/logout', to: 'super_admin/devise/sessions#destroy'
@@ -656,6 +666,16 @@ Rails.application.routes.draw do
       end
       resources :platform_apps, only: [:index, :new, :create, :show, :edit, :update, :destroy]
       resource :instance_status, only: [:show]
+
+      resource :technical_health, only: [:show], controller: 'technical_health' do
+        post :refresh
+        get :diagnose
+        get 'connections/:connection_id/timeline', action: :connection_timeline, as: :connection_timeline
+        post 'alerts/:alert_id/acknowledge', action: :acknowledge_alert, as: :acknowledge_alert
+        post 'alerts/:alert_id/resolve', action: :resolve_alert, as: :resolve_alert
+        post 'incidents/:incident_id/acknowledge', action: :acknowledge_incident, as: :acknowledge_incident
+        post 'incidents/:incident_id/resolve', action: :resolve_incident, as: :resolve_incident
+      end
 
       resource :settings, only: [:show] do
         get :refresh, on: :collection
