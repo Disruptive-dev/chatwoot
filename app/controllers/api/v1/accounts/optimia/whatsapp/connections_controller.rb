@@ -2,7 +2,6 @@
 
 class Api::V1::Accounts::Optimia::Whatsapp::ConnectionsController < Api::V1::Accounts::BaseController
   before_action :ensure_feature_enabled!
-  before_action :check_admin_authorization!
   before_action :fetch_connection, except: [:index, :create]
 
   def index
