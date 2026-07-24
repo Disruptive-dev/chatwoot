@@ -7,9 +7,9 @@ module Optimia
         private
 
         def perform_check
-          connections = OptimiaChannelConnection.lifecycle_active
+          connections = OptimiaChannelConnection.lifecycle_active.includes(inbox: :channel).to_a
           broken = connections.count { |connection| webhook_broken?(connection) }
-          total = connections.count
+          total = connections.size
           status = broken.positive? ? (broken == total ? 'critical' : 'degraded') : 'healthy'
 
           {

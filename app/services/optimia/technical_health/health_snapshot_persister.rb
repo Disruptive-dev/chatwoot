@@ -3,6 +3,8 @@
 module Optimia
   module TechnicalHealth
     class HealthSnapshotPersister
+      RETENTION_DAYS = 30
+
       def initialize(results)
         @results = results
       end
@@ -20,6 +22,16 @@ module Optimia
             checked_at: result[:checked_at]
           )
         end
+
+        prune_old_records!
+      end
+
+      private
+
+      def prune_old_records!
+        cutoff = RETENTION_DAYS.days.ago
+        OptimiaTechnicalHealthCheck.where(checked_at: ...cutoff).delete_all
+        OptimiaTechnicalMetricSnapshot.where(recorded_at: ...cutoff).delete_all
       end
     end
   end

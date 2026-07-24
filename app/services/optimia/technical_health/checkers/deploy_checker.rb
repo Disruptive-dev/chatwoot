@@ -22,7 +22,7 @@ module Optimia
               image_digest: digest,
               image_tag: tag,
               pending_migrations: pending,
-              server_name: Socket.gethostname
+              server_name: ENV.fetch('OPTIMIA_SWARM_SERVICE', 'unknown')
             }
           }
         end

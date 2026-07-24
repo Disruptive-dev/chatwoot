@@ -44,6 +44,23 @@ Navegación: **Super Admin → Technical Health** (sidebar).
 
 Autenticación: header `Authorization: Bearer <OPTIMIA_INTERNAL_HEALTH_TOKEN>` o sesión activa de super_admin.
 
+**Seguridad del token**
+
+- Si `OPTIMIA_INTERNAL_HEALTH_TOKEN` no está definido, la API interna **solo** acepta sesión Super Admin (no token vacío).
+- Comparación con `Digest::SHA256` + `secure_compare` (evita filtración por longitud).
+- El token **nunca** aparece en respuestas JSON ni en logs del módulo.
+- Generación recomendada: `openssl rand -hex 32`
+- Rotación: actualizar ENV en staging/prod y reiniciar web; revocar token anterior.
+
+**Retención de datos**
+
+- `optimia_technical_health_checks` y `optimia_technical_metric_snapshots`: **30 días** (purge automático en cada persist).
+- Alertas/incidentes resueltos: sin purge automático en v0.2.0 (revisar en sprint posterior).
+
+**Diagnóstico sin efectos secundarios**
+
+- `DiagnosticCenterService` ejecuta checks con `persist: false` (no crea snapshots, alertas ni métricas).
+
 ## Módulos
 
 | Módulo | Servicio / clase | Función |
@@ -93,7 +110,7 @@ Estados posibles: `healthy`, `degraded`, `critical`, `unknown`.
 
 | Job | Cron | Cola | Descripción |
 |-----|------|------|-------------|
-| `Optimia::TechnicalHealth::CollectHealthJob` | `*/5 * * * *` | `scheduled_jobs` | Ejecuta `Orchestrator.run!` |
+| `Optimia::TechnicalHealth::CollectHealthJob` | `*/5 * * * *` | `scheduled_jobs` | Ejecuta `Orchestrator.run!` con lock Redis (240s) |
 | `Optimia::ChannelManager::MonitorConnectionsJob` | `*/2 * * * *` | `scheduled_jobs` | Monitoreo conexiones WhatsApp (Sprint 2) |
 
 ## Variables de entorno

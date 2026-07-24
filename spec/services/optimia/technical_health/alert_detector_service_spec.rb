@@ -15,4 +15,12 @@ RSpec.describe Optimia::TechnicalHealth::AlertDetectorService do
       described_class.new(checks).detect!
     end.to change(OptimiaTechnicalAlert.where(alert_type: 'evolution_down'), :count).by(1)
   end
+
+  it 'does not duplicate open alerts' do
+    described_class.new(checks).detect!
+
+    expect do
+      described_class.new(checks).detect!
+    end.not_to change(OptimiaTechnicalAlert, :count)
+  end
 end

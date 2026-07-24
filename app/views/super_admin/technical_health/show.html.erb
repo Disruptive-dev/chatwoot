@@ -63,7 +63,7 @@
         </tr>
       </thead>
       <tbody>
-        <% @connections.each do |connection| %>
+        <% (@connections || []).each do |connection| %>
           <tr>
             <td class="p-2 border-b"><%= connection[:display_name] %></td>
             <td class="p-2 border-b"><%= connection[:state] %></td>

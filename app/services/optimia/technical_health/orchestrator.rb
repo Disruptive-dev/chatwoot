@@ -18,12 +18,13 @@ module Optimia
         'deploy' => Checkers::DeployChecker
       }.freeze
 
-      def self.run!(components: CHECKERS.keys)
-        new(components: components).run!
+      def self.run!(components: CHECKERS.keys, persist: true)
+        new(components: components, persist: persist).run!
       end
 
-      def initialize(components: CHECKERS.keys)
+      def initialize(components: CHECKERS.keys, persist: true)
         @components = components
+        @persist = persist
       end
 
       def run!
@@ -33,6 +34,8 @@ module Optimia
 
           checker_class.new.check
         end
+
+        return results unless @persist
 
         HealthSnapshotPersister.new(results).persist!
         AlertDetectorService.new(results).detect!

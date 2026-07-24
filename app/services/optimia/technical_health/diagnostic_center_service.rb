@@ -10,7 +10,10 @@ module Optimia
       end
 
       def perform!
-        checks = Orchestrator.run!(components: %w[evolution webhooks postgres redis sidekiq jobs scheduler])
+        checks = Orchestrator.run!(
+          components: %w[evolution webhooks postgres redis sidekiq jobs scheduler],
+          persist: false
+        )
         connection_diag = @connection ? connection_diagnostic : {}
         score, recommendations = score_and_recommend(checks, connection_diag)
 

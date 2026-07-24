@@ -18,7 +18,7 @@ module Optimia
             metadata: {
               swarm_service: service,
               node_role: role,
-              hostname: Socket.gethostname
+              hostname: 'unknown'
             }
           }
         end

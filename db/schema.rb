@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_24_160000) do
+ActiveRecord::Schema[7.1].define(version: 2026_07_24_210000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1154,6 +1154,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_24_160000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["alert_type"], name: "index_optimia_technical_alerts_on_alert_type"
+    t.index ["alert_type"], name: "index_optimia_technical_alerts_unique_open", unique: true, where: "((status)::text = 'open'::text)"
     t.index ["component"], name: "index_optimia_technical_alerts_on_component"
     t.index ["opened_at"], name: "index_optimia_technical_alerts_on_opened_at"
     t.index ["severity"], name: "index_optimia_technical_alerts_on_severity"
@@ -1219,6 +1220,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_24_160000) do
     t.index ["component"], name: "index_optimia_technical_timeline_events_on_component"
     t.index ["event_type"], name: "index_optimia_technical_timeline_events_on_event_type"
     t.index ["occurred_at"], name: "index_optimia_technical_timeline_events_on_occurred_at"
+    t.index ["optimia_channel_connection_id", "occurred_at"], name: "index_optimia_technical_timeline_on_connection_and_time"
     t.index ["optimia_channel_connection_id"], name: "idx_on_optimia_channel_connection_id_20b484b069"
   end
 
