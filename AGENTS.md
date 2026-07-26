@@ -128,3 +128,36 @@ Practical checklist for any change impacting core logic or public APIs
 - When renaming/moving shared code, mirror the change in `enterprise/` to prevent drift.
 - Tests: Add Enterprise-specific specs under `spec/enterprise`, mirroring OSS spec layout where applicable.
 - When modifying existing OSS features for Enterprise-only behavior, add an Enterprise module (via `prepend_mod_with`/`include_mod_with`) instead of editing OSS files directly—especially for policies, controllers, and services. For Enterprise-exclusive features, place code directly under `enterprise/`.
+
+## Cursor Cloud specific instructions
+
+The VM snapshot already has the toolchain installed (Ruby 3.4.4 via `rbenv`, Node 24.13.0 via `nvm`, `pnpm`, `overmind`, PostgreSQL 16 with the `pgvector` extension, and Redis). The startup update script only refreshes app dependencies (`bundle install` + `pnpm install`); it does NOT start services. Login shells (`bash -l`) already init `rbenv` + `nvm` and put Node 24 ahead of `/exec-daemon/node`, so run project commands through a login shell (e.g. `bash -lc '...'`).
+
+### Start the stack (each session)
+
+Datastores are not managed by `overmind`, so start them first, then run the dev processes:
+
+```bash
+sudo pg_ctlcluster 16 main start   # PostgreSQL on :5432
+sudo service redis-server start    # Redis on :6379
+overmind start -f ./Procfile.dev   # backend :3000, worker (sidekiq), vite :3036
+```
+
+The DB (`chatwoot_dev`) is already created/migrated/seeded in the snapshot. If it is missing, run `bundle exec rails db:prepare` (tests: `RAILS_ENV=test bundle exec rails db:test:prepare`).
+
+### Local `.env` (gitignored, already present in snapshot)
+
+Dev connects to local datastores, not the docker-compose hostnames. Key overrides vs `.env.example`: `POSTGRES_HOST=localhost`, `POSTGRES_USERNAME=postgres`, `POSTGRES_PASSWORD=postgres`, `REDIS_URL=redis://localhost:6379`, a generated `SECRET_KEY_BASE`, and `DISABLE_MINI_PROFILER=true`.
+
+### Gotcha: blank dashboard / requests stuck "pending" in the browser
+
+With `rack-mini-profiler` enabled in development, the browser can hang with all JS module requests stuck in `pending` (HTTP/1.1 6-connection-per-host saturation from long-lived profiler/HMR connections), leaving a blank page even though `curl` returns 200 for every asset. Keep `DISABLE_MINI_PROFILER=true` in `.env` when doing browser/UI testing (this mirrors `Procfile.tunnel`). Restart the `backend` process after changing `.env`.
+
+### Seed login
+
+Dev seeds create SuperAdmin `john@acme.inc` / `Password1!` on account "Acme Inc". App runs at `http://localhost:3000`.
+
+### Notes
+
+- Email delivery uses `/usr/sbin/sendmail`, which is not installed; Sidekiq mailer jobs will fail harmlessly in dev (MailHog is optional).
+- Standard build/test/lint commands are documented under **Build / Test / Lint** above.
