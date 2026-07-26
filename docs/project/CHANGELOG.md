@@ -5,11 +5,25 @@
 
 ## [Unreleased]
 
+### Added (Sprint v0.2.1 — CI/CD Platform Cleanup)
+
+- Pipeline unificado: `optimia-ci.yml`, `optimia-build-staging.yml`, `optimia-build-production.yml`.
+- Documentación CI/CD en `docs/optimia/cicd/` (constitution, spec, decisions, plan, tasks, runbooks).
+- Scripts: `scripts/optimia/ci-status.sh`, `image-inspect.sh`, `release-metadata.sh`, `validate-cicd.sh`.
+- Guards upstream en 11 workflows heredados de Chatwoot (Docker Hub, Heroku, CI duplicado).
+- Workflows legacy `build-optimia-chatwoot*.yml` deprecados.
+- Registry activo parametrizado: fallback `ghcr.io/pablo-paez-dev/chatwoot`.
+
+### Changed
+
+- Producción protegida: sin auto-build en push `develop`.
+- Staging registry unificado con producción (mismo namespace parametrizado).
+
 ### Pendiente
 
-- Publicar imagen staging v0.2.0 (workflow manual).
-- QA Technical Health Center en staging.
-- Aprobación ADRs por propietario.
+- Publicar imagen staging v0.2.0 (autorización humana post-merge).
+- Configurar environment `production` y variables GitHub.
+- Migración registry a `ghcr.io/dsw-factory/optimia-chatwoot` (requiere GHCR_TOKEN).
 
 ---
 

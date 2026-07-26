@@ -1,0 +1,195 @@
+name: OptimiA Build Production
+
+# Production image build — MANUAL ONLY.
+# Requires environment approval and validated staging digest.
+# Does NOT deploy automatically to any runtime environment.
+
+on:
+  workflow_dispatch:
+    inputs:
+      optimia_version:
+        description: OptimiA SemVer (e.g. 0.2.0)
+        required: true
+      chatwoot_version:
+        description: Chatwoot base version (e.g. 4.10.1)
+        required: true
+        default: '4.10.1'
+      staging_digest:
+        description: SHA-256 digest validated in staging (sha256:...)
+        required: true
+      confirm_production:
+        description: Type DEPLOY_OPTIMIA to confirm
+        required: true
+      frontend_url:
+        description: FRONTEND_URL override (optional)
+        required: false
+        default: ''
+      registry:
+        description: Override GHCR image prefix (optional)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: optimia-production-build
+  cancel-in-progress: false
+
+env:
+  DEFAULT_REGISTRY: ghcr.io/pablo-paez-dev/chatwoot
+  DEFAULT_FRONTEND_URL: https://app.optimia.spectra-metrics.com
+  PRODUCTION_TAG_PATTERN: '^cw-[0-9]+\.[0-9]+\.[0-9]+-optimia-[0-9]+\.[0-9]+\.[0-9]+$'
+
+jobs:
+  build-and-push-production:
+    name: Build Production Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ inputs.confirm_production }}" != "DEPLOY_OPTIMIA" ]; then
+            echo "::error::confirm_production must be exactly DEPLOY_OPTIMIA"
+            exit 1
+          fi
+
+      - name: Validate staging digest format
+        run: |
+          DIGEST="${{ inputs.staging_digest }}"
+          if ! echo "$DIGEST" | grep -Eq '^sha256:[a-f0-9]{64}$'; then
+            echo "::error::staging_digest must be a SHA-256 digest (sha256:...)"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve build parameters
+        id: params
+        run: |
+          set -euo pipefail
+          REGISTRY="${{ inputs.registry }}"
+          if [ -z "$REGISTRY" ]; then
+            REGISTRY="${{ vars.OPTIMIA_GHCR_REGISTRY }}"
+          fi
+          if [ -z "$REGISTRY" ]; then
+            REGISTRY="${DEFAULT_REGISTRY}"
+          fi
+
+          CW="${{ inputs.chatwoot_version }}"
+          OPT="${{ inputs.optimia_version }}"
+          TAG="cw-${CW}-optimia-${OPT}"
+
+          if ! echo "$TAG" | grep -Eq "${PRODUCTION_TAG_PATTERN}"; then
+            echo "::error::Invalid production tag format: ${TAG}"
+            exit 1
+          fi
+
+          FRONTEND_URL="${{ inputs.frontend_url }}"
+          if [ -z "$FRONTEND_URL" ]; then
+            FRONTEND_URL="${{ vars.OPTIMIA_FRONTEND_URL_PRODUCTION }}"
+          fi
+          if [ -z "$FRONTEND_URL" ]; then
+            FRONTEND_URL="${DEFAULT_FRONTEND_URL}"
+          fi
+
+          INSTALLATION_NAME="${{ vars.OPTIMIA_INSTALLATION_NAME }}"
+          BRAND_NAME="${{ vars.OPTIMIA_BRAND_NAME }}"
+          if [ -z "$INSTALLATION_NAME" ]; then INSTALLATION_NAME="OptimiA"; fi
+          if [ -z "$BRAND_NAME" ]; then BRAND_NAME="OptimiA"; fi
+
+          echo "registry=${REGISTRY}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "frontend_url=${FRONTEND_URL}" >> "$GITHUB_OUTPUT"
+          echo "installation_name=${INSTALLATION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "brand_name=${BRAND_NAME}" >> "$GITHUB_OUTPUT"
+          echo "image=${REGISTRY}:${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Check tag does not already exist
+        run: |
+          set -euo pipefail
+          IMAGE="${{ steps.params.outputs.image }}"
+          if docker manifest inspect "$IMAGE" > /dev/null 2>&1; then
+            echo "::error::Production tag already exists: ${IMAGE}"
+            echo "Refusing to overwrite immutable production tag."
+            exit 1
+          fi
+          echo "Tag ${IMAGE} is available."
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build production image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.params.outputs.image }}
+          sbom: true
+          provenance: true
+          cache-from: type=gha,scope=optimia-production
+          cache-to: type=gha,mode=max,scope=optimia-production
+          build-args: |
+            SECRET_KEY_BASE=dummy_secret_key_base_for_assets
+            FRONTEND_URL=${{ steps.params.outputs.frontend_url }}
+            INSTALLATION_NAME=${{ steps.params.outputs.installation_name }}
+            BRAND_NAME=${{ steps.params.outputs.brand_name }}
+            RAILS_ENV=production
+            NODE_ENV=production
+
+      - name: Write release metadata
+        run: |
+          set -euo pipefail
+          METADATA_FILE="production-image-metadata.json"
+          cat > "$METADATA_FILE" <<EOF
+          {
+            "image": "${{ steps.params.outputs.image }}",
+            "digest": "${{ steps.build.outputs.digest }}",
+            "tag": "${{ steps.params.outputs.tag }}",
+            "staging_digest_validated": "${{ inputs.staging_digest }}",
+            "commit_sha": "${{ github.sha }}",
+            "optimia_version": "${{ inputs.optimia_version }}",
+            "chatwoot_version": "${{ inputs.chatwoot_version }}",
+            "frontend_url": "${{ steps.params.outputs.frontend_url }}",
+            "registry": "${{ steps.params.outputs.registry }}",
+            "built_at_utc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "workflow_run_id": "${{ github.run_id }}",
+            "approved_by_environment": "production"
+          }
+          EOF
+          cat "$METADATA_FILE"
+
+      - name: Upload release metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-image-metadata
+          path: production-image-metadata.json
+          retention-days: 365
+
+      - name: Job summary
+        run: |
+          {
+            echo "## OptimiA Production Image"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| Image | \`${{ steps.params.outputs.image }}\` |"
+            echo "| Digest | \`${{ steps.build.outputs.digest }}\` |"
+            echo "| Staging digest (validated) | \`${{ inputs.staging_digest }}\` |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo ""
+            echo "**No automatic deploy.** Update production manually using the digest above."
+          } >> "$GITHUB_STEP_SUMMARY"

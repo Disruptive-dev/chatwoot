@@ -208,4 +208,64 @@
 
 ---
 
+## Sprint v0.2.1 — CI/CD Platform Cleanup
+
+| Campo | Valor |
+|-------|-------|
+| **Sprint** | v0.2.1 — CI/CD Platform Cleanup |
+| **Entorno** | Cursor Cloud Agent |
+| **Rama** | `cursor/optimia-cicd-cleanup-ce69` |
+| **Commit base** | `1f224c885` (develop) |
+| **Deploy** | No |
+| **Producción modificada** | No |
+| **EasyPanel modificado** | No |
+| **Imagen producción publicada** | No |
+| **Staging desplegado** | No |
+
+### Causa raíz
+
+- Workflow prod (`build-optimia-chatwoot.yml`) publicaba en `ghcr.io/disruptive-dev/chatwoot` sin permisos.
+- Push automático a `develop` disparaba builds prod + upstream Docker Hub.
+- 17 workflows activos con duplicación CI y colas de runners.
+- Registries fragmentados: `disruptive-dev`, `pablo-paez-dev`, `dsw-factory` (doc).
+
+### Entregables
+
+- Auditoría 17 workflows → `docs/optimia/cicd/spec.md`
+- ADR CI/CD 001–004 → `docs/optimia/cicd/decisions.md`
+- `optimia-ci.yml`, `optimia-build-staging.yml`, `optimia-build-production.yml`
+- Guards upstream en 11 workflows
+- Legacy `build-optimia-chatwoot*.yml` deprecados
+- Scripts `scripts/optimia/*.sh`
+- Documentación runbooks y migración registry
+
+### Registry elegido
+
+| Rol | Valor |
+|-----|-------|
+| Objetivo | `ghcr.io/dsw-factory/optimia-chatwoot` |
+| Fallback activo | `ghcr.io/pablo-paez-dev/chatwoot` |
+| Bloqueo | GHCR cross-org sin `GHCR_TOKEN` |
+
+### Controles
+
+| Control | Resultado |
+|---------|-----------|
+| Producción sin modificar | ✅ |
+| EasyPanel sin tocar | ✅ |
+| Sin publish prod | ✅ |
+| Sin deploy staging | ✅ |
+| `validate-cicd.sh` | Ver commit |
+| disruptive-dev eliminado de workflows activos | ✅ |
+
+### Próximo paso exacto
+
+1. Merge PR → `develop`.
+2. Configurar variables GitHub + environment `production`.
+3. Autorizar `optimia-build-staging` tag `staging-cw-4.10.1-optimia-0.2.0`.
+4. Deploy staging EasyPanel por digest (humano).
+5. Smoke tests → aprobar build producción.
+
+---
+
 <!-- Próximas entradas se agregan debajo, sin modificar las anteriores -->
