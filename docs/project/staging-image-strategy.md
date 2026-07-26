@@ -1,6 +1,6 @@
 # Estrategia de imágenes — Staging OptimiA
 
-> Actualizado v0.2.1 CI/CD cleanup. Ver `docs/optimia/cicd/`.
+> Actualizado v0.2.1 CI/CD cleanup. Ver también `docs/optimia/cicd/`.
 
 ## Regla de oro
 
@@ -44,17 +44,4 @@ Workflows legacy `build-optimia-chatwoot*.yml` → **deprecados**.
 3. Copiar digest del job summary
 4. Deploy manual EasyPanel staging
 
-Ver: [runbook-staging.md](../cicd/runbook-staging.md)
-
-## Promoción staging → producción
-
-```
-1. Validar staging (smoke tests)
-2. Copiar digest staging
-3. optimia-build-production.yml con confirmación DEPLOY_OPTIMIA
-4. EasyPanel prod manual por digest (futuro)
-```
-
-## Rollback staging
-
-Re-deploy del digest staging anterior. Sin impacto en producción v0.1.9.
+Ver: [runbook-staging.md](../optimia/cicd/runbook-staging.md)

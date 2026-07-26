@@ -1,78 +1,19 @@
-name: Build Optimia Chatwoot Staging Image
+name: DEPRECATED — Build Optimia Chatwoot Staging Image
 
-# Staging-only build. Does NOT modify production tags (v4.10.1-optimia.6, optimia-latest).
-# Trigger:
-#   - Manual: GitHub Actions → Run workflow
-#   - Tag push: staging-cw-* (e.g. staging-cw-4.10.1-optimia-0.1.3)
+# Replaced by optimia-build-staging.yml (v0.2.1 CI/CD cleanup).
 
 on:
   workflow_dispatch:
-    inputs:
-      optimia_version:
-        description: 'OptimiA SemVer for tag (e.g. 0.1.3)'
-        required: true
-        default: '0.1.3'
-      chatwoot_version:
-        description: 'Chatwoot base version for tag (e.g. 4.10.1)'
-        required: true
-        default: '4.10.1'
-      frontend_url:
-        description: 'FRONTEND_URL for asset precompile (staging domain)'
-        required: true
-        default: 'https://staging.optimia.spectra-metrics.com'
-  push:
-    tags:
-      - 'staging-cw-*'
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
-  build-and-push-staging:
+  deprecated:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set staging image tag and frontend URL
+      - name: Workflow deprecated
         run: |
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            TAG="${GITHUB_REF#refs/tags/}"
-            FRONTEND_URL="https://staging.optimia.spectra-metrics.com"
-          else
-            TAG="staging-cw-${{ inputs.chatwoot_version }}-optimia-${{ inputs.optimia_version }}"
-            FRONTEND_URL="${{ inputs.frontend_url }}"
-          fi
-          echo "STAGING_TAG=${TAG}" >> $GITHUB_ENV
-          echo "FRONTEND_URL_BUILD=${FRONTEND_URL}" >> $GITHUB_ENV
-          echo "Building ghcr.io/pablo-paez-dev/chatwoot:${TAG}"
-
-      - name: Build and push OptimiA staging image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ghcr.io/pablo-paez-dev/chatwoot:${{ env.STAGING_TAG }}
-          build-args: |
-            SECRET_KEY_BASE=dummy_secret_key_base_for_assets
-            FRONTEND_URL=${{ env.FRONTEND_URL_BUILD }}
-            INSTALLATION_NAME=OptimIA Staging
-            BRAND_NAME=OptimIA
-
-      - name: Summary
-        run: |
-          echo "## Staging image published" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Image: \`ghcr.io/pablo-paez-dev/chatwoot:${STAGING_TAG}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- FRONTEND_URL: \`${FRONTEND_URL_BUILD}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Production tags were NOT modified." >> $GITHUB_STEP_SUMMARY
+          echo "::error::This workflow was replaced by .github/workflows/optimia-build-staging.yml"
+          echo "Use workflow_dispatch or push tag staging-cw-* on the new workflow."
+          exit 1

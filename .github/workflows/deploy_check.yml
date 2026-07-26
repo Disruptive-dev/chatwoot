@@ -13,6 +13,7 @@ concurrency:
 
 jobs:
   deployment_check:
+    if: github.repository == 'chatwoot/chatwoot'
     name: Check Deployment
     runs-on: ubuntu-latest
     steps:

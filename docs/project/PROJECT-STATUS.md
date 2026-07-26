@@ -1,7 +1,7 @@
 # PROJECT-STATUS — OptimiA
 
 > Fuente de verdad del estado del proyecto. Actualizar al cierre de cada sprint.  
-> Última actualización: 2026-07-24 (Sprint 3 — Technical Health Center v0.2.0)
+> Última actualización: 2026-07-26 (Sprint v0.2.1 — CI/CD Platform Cleanup)
 
 ## Identidad
 
@@ -10,10 +10,11 @@
 | **Proyecto** | OptimiA |
 | **Base** | Chatwoot |
 | **Versión Chatwoot** | 4.10.1 |
-| **Versión OptimiA** | 0.2.0 |
+| **Versión OptimiA** | 0.2.0 (código en develop; imagen no publicada) |
 | **Repositorio actual** | `pablo-paez-dev/chatwoot` |
-| **Repositorio canónico futuro** | `DSW-Factory/optimia-chatwoot` (ADR-001 — pendiente aprobación) |
-| **Rama activa** | `cursor/technical-health-center-3da0` |
+| **Registry CI activo** | `ghcr.io/pablo-paez-dev/chatwoot` (fallback) |
+| **Registry objetivo** | `ghcr.io/dsw-factory/optimia-chatwoot` (ADR-001 — pendiente GHCR_TOKEN) |
+| **Rama activa** | `develop` @ `1f224c885` |
 
 ## Commits de referencia
 
@@ -47,8 +48,8 @@
 |-------|--------|
 | **Entorno** | NO CREADO — documentación lista |
 | **Dominio propuesto** | `https://staging.optimia.spectra-metrics.com` |
-| **Imagen propuesta** | `ghcr.io/disruptive-dev/chatwoot:staging-cw-4.10.1-optimia-0.2.0` |
-| **Workflow build** | `build-optimia-chatwoot-staging.yml` (manual, no afecta prod) |
+| **Imagen propuesta** | `ghcr.io/pablo-paez-dev/chatwoot:staging-cw-4.10.1-optimia-0.2.0` |
+| **Workflow build** | `optimia-build-staging.yml` (manual o tag `staging-cw-*`) |
 | **Guía EasyPanel** | `docs/optimia/operations/easypanel-staging-setup-guide.md` |
 
 ## Sprints
@@ -59,29 +60,34 @@
 | Sprint 1 — Preparación staging aislado | **FINALIZADO** (sin deploy) |
 | Sprint 1b — Creación staging EasyPanel | **PENDIENTE** (acción humana) |
 | Sprint 2 — Channel Manager + Connection Center | **IMPLEMENTADO** (pendiente staging QA) |
-| Sprint 3 — Technical Health Center v0.2.0 | **IMPLEMENTADO** (pendiente staging QA) |
+| Sprint 3 — Technical Health Center v0.2.0 | **MERGEADO** a develop |
+| Sprint v0.2.1 — CI/CD Platform Cleanup | **EN PR** (sin deploy) |
 
 ## ADRs
 
 | ADR | Estado |
 |-----|--------|
-| ADR-001, 002, 003 | PROPUESTA — pendiente decisión propietario |
-| ADR-004 | ACEPTADO — Channel Manager foundation |
+| ADR-001 (repo canónico) | ACEPTADO con fallback `pablo-paez-dev` |
+| ADR-002 (CI único) | ACEPTADO — `optimia-ci.yml` |
+| ADR-003 (versionado/tags) | ACEPTADO |
+| ADR-004 (Channel Manager) | ACEPTADO |
+| CI/CD ADR-001–004 | ACEPTADO — ver `docs/optimia/cicd/decisions.md` |
 
 ## Bloqueos
 
 1. Staging no desplegado — requiere acción humana en EasyPanel.
-2. Imagen staging debe publicarse vía workflow manual antes del deploy.
-3. ADRs 001-003 sin aprobación formal.
-4. Sprint 2 y 3 requieren validación en staging (Evolution API + Technical Health + smoke tests).
+2. Imagen staging v0.2.0 pendiente publicación (autorización post-merge PR CI/CD).
+3. DSW-Factory GHCR cross-org — requiere `GHCR_TOKEN` org.
+4. Sprint 2 y 3 requieren validación en staging.
 5. Migración BD Technical Health pendiente hasta deploy staging.
 
 ## Próximo paso exacto
 
-1. Merge `cursor/technical-health-center-3da0` → `develop` y build imagen staging v0.2.0.
-2. Ejecutar migración BD en staging.
-3. Configurar ENV (`OPTIMIA_INTERNAL_HEALTH_TOKEN`, Evolution, deploy metadata).
-4. Smoke tests: `docs/optimia/technical-health/runbooks.md` y `docs/optimia/operations/staging-connection-center-runbook.md`.
+1. Merge PR `cursor/optimia-cicd-cleanup-ce69` → `develop`.
+2. Configurar variables GitHub y environment `production`.
+3. Ejecutar `optimia-build-staging` tag `staging-cw-4.10.1-optimia-0.2.0` (autorización humana).
+4. Deploy staging EasyPanel por digest.
+5. Smoke tests Technical Health + Connection Center.
 
 ## Documentación clave
 

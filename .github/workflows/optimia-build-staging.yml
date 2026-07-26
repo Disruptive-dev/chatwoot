@@ -1,0 +1,182 @@
+name: OptimiA Build Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      optimia_version:
+        description: OptimiA SemVer (e.g. 0.2.0)
+        required: false
+        default: '0.2.0'
+      chatwoot_version:
+        description: Chatwoot base version (e.g. 4.10.1)
+        required: false
+        default: '4.10.1'
+      frontend_url:
+        description: FRONTEND_URL for asset precompile
+        required: false
+        default: ''
+      registry:
+        description: Override GHCR image (image:tag prefix without tag)
+        required: false
+        default: ''
+      dry_run:
+        description: Build only — do not push image
+        required: false
+        type: boolean
+        default: false
+  push:
+    tags:
+      - staging-cw-*
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: optimia-staging-build
+  cancel-in-progress: false
+
+env:
+  DEFAULT_REGISTRY: ghcr.io/pablo-paez-dev/chatwoot
+  DEFAULT_FRONTEND_URL: https://staging.optimia.spectra-metrics.com
+  STAGING_TAG_PATTERN: '^staging-cw-[0-9]+\.[0-9]+\.[0-9]+-optimia-[0-9]+\.[0-9]+\.[0-9]+$'
+
+jobs:
+  build-and-push-staging:
+    name: Build Staging Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve build parameters
+        id: params
+        run: |
+          set -euo pipefail
+          REGISTRY="${{ inputs.registry }}"
+          if [ -z "$REGISTRY" ]; then
+            REGISTRY="${{ vars.OPTIMIA_GHCR_REGISTRY }}"
+          fi
+          if [ -z "$REGISTRY" ]; then
+            REGISTRY="${DEFAULT_REGISTRY}"
+          fi
+
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            FRONTEND_URL="${{ vars.OPTIMIA_FRONTEND_URL_STAGING }}"
+          else
+            CW="${{ inputs.chatwoot_version }}"
+            OPT="${{ inputs.optimia_version }}"
+            if [ -z "$CW" ]; then CW="${{ vars.OPTIMIA_CHATWOOT_BASE_VERSION }}"; fi
+            if [ -z "$CW" ]; then CW="4.10.1"; fi
+            if [ -z "$OPT" ]; then OPT="0.2.0"; fi
+            TAG="staging-cw-${CW}-optimia-${OPT}"
+            FRONTEND_URL="${{ inputs.frontend_url }}"
+          fi
+
+          if [ -z "$FRONTEND_URL" ]; then
+            FRONTEND_URL="${{ vars.OPTIMIA_FRONTEND_URL_STAGING }}"
+          fi
+          if [ -z "$FRONTEND_URL" ]; then
+            FRONTEND_URL="${DEFAULT_FRONTEND_URL}"
+          fi
+
+          if ! echo "$TAG" | grep -Eq "${STAGING_TAG_PATTERN}"; then
+            echo "::error::Invalid staging tag format: ${TAG}"
+            echo "Expected: staging-cw-X.Y.Z-optimia-A.B.C"
+            exit 1
+          fi
+
+          INSTALLATION_NAME="${{ vars.OPTIMIA_INSTALLATION_NAME }}"
+          BRAND_NAME="${{ vars.OPTIMIA_BRAND_NAME }}"
+          if [ -z "$INSTALLATION_NAME" ]; then INSTALLATION_NAME="OptimiA"; fi
+          if [ -z "$BRAND_NAME" ]; then BRAND_NAME="OptimiA"; fi
+
+          echo "registry=${REGISTRY}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "frontend_url=${FRONTEND_URL}" >> "$GITHUB_OUTPUT"
+          echo "installation_name=${INSTALLATION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "brand_name=${BRAND_NAME}" >> "$GITHUB_OUTPUT"
+          echo "image=${REGISTRY}:${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build staging image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run != true) }}
+          tags: ${{ steps.params.outputs.image }}
+          sbom: true
+          provenance: true
+          cache-from: type=gha,scope=optimia-staging
+          cache-to: type=gha,mode=max,scope=optimia-staging
+          build-args: |
+            SECRET_KEY_BASE=dummy_secret_key_base_for_assets
+            FRONTEND_URL=${{ steps.params.outputs.frontend_url }}
+            INSTALLATION_NAME=${{ steps.params.outputs.installation_name }} Staging
+            BRAND_NAME=${{ steps.params.outputs.brand_name }}
+            RAILS_ENV=production
+            NODE_ENV=production
+
+      - name: Handle dry run
+        if: inputs.dry_run == true
+        run: |
+          echo "::notice::Dry run — image was built but not pushed."
+          echo "Would publish: ${{ steps.params.outputs.image }}"
+
+      - name: Write metadata artifact
+        if: inputs.dry_run != true
+        run: |
+          set -euo pipefail
+          METADATA_FILE="staging-image-metadata.json"
+          cat > "$METADATA_FILE" <<EOF
+          {
+            "image": "${{ steps.params.outputs.image }}",
+            "digest": "${{ steps.build.outputs.digest }}",
+            "tag": "${{ steps.params.outputs.tag }}",
+            "commit_sha": "${{ github.sha }}",
+            "optimia_version": "$(echo '${{ steps.params.outputs.tag }}' | sed -n 's/.*-optimia-//p')",
+            "chatwoot_version": "$(echo '${{ steps.params.outputs.tag }}' | sed -n 's/staging-cw-\(.*\)-optimia-.*/\1/p')",
+            "frontend_url": "${{ steps.params.outputs.frontend_url }}",
+            "registry": "${{ steps.params.outputs.registry }}",
+            "built_at_utc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "workflow_run_id": "${{ github.run_id }}"
+          }
+          EOF
+          cat "$METADATA_FILE"
+
+      - name: Upload metadata artifact
+        if: inputs.dry_run != true
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-image-metadata
+          path: staging-image-metadata.json
+          retention-days: 90
+
+      - name: Job summary
+        run: |
+          {
+            echo "## OptimiA Staging Image"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| Image | \`${{ steps.params.outputs.image }}\` |"
+            echo "| Digest | \`${{ steps.build.outputs.digest }}\` |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| FRONTEND_URL | \`${{ steps.params.outputs.frontend_url }}\` |"
+            echo "| Dry run | \`${{ inputs.dry_run }}\` |"
+            echo ""
+            echo "**Production was NOT modified.** No automatic deploy was triggered."
+          } >> "$GITHUB_STEP_SUMMARY"

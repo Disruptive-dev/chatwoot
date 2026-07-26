@@ -1,43 +1,21 @@
-name: Build Optimia Chatwoot Image
+name: DEPRECATED — Build Optimia Chatwoot Image
+
+# Replaced by optimia-build-production.yml (v0.2.1 CI/CD cleanup).
+# This workflow no longer builds or pushes images.
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - develop
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
-  build-and-push:
+  deprecated:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set lowercase image name
-        run: echo "IMAGE_NAME=ghcr.io/disruptive-dev/chatwoot" >> $GITHUB_ENV
-
-      - name: Build and push Optimia image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ghcr.io/disruptive-dev/chatwoot:v4.10.1-optimia.6
-            ghcr.io/disruptive-dev/chatwoot:optimia-latest
-          build-args: |
-            SECRET_KEY_BASE=dummy_secret_key_base_for_assets
-            FRONTEND_URL=https://app.optimia.spectra-metrics.com
-            INSTALLATION_NAME=OptimIA
-            BRAND_NAME=OptimIA
+      - name: Workflow deprecated
+        run: |
+          echo "::error::This workflow was replaced by .github/workflows/optimia-build-production.yml"
+          echo "Production builds require manual workflow_dispatch with environment approval."
+          echo "Push to develop no longer triggers production image builds."
+          exit 1
