@@ -1,0 +1,136 @@
+name: Facebook Messenger Hotfix CI
+
+on:
+  pull_request:
+    paths:
+      - 'app/services/facebook/**'
+      - 'app/builders/messages/facebook/**'
+      - 'lib/tasks/optimia_facebook.rake'
+      - 'spec/services/facebook/**'
+      - 'spec/builders/messages/facebook/**'
+      - 'spec/jobs/send_reply_job_spec.rb'
+      - 'spec/tasks/optimia_facebook_diagnose_spec.rb'
+      - '.github/workflows/facebook-messenger-hotfix-ci.yml'
+  push:
+    branches:
+      - 'cursor/facebook-messenger-hotfix-41ec'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: facebook-messenger-hotfix-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RAILS_ENV: test
+  NODE_OPTIONS: --openssl-legacy-provider
+  SECRET_KEY_BASE: dummy_secret_key_base_for_ci_only
+  FRONTEND_URL: http://localhost:3000
+  POSTGRES_HOST: localhost
+  POSTGRES_USERNAME: postgres
+  POSTGRES_PASSWORD: ''
+  POSTGRES_DATABASE: chatwoot_test
+  REDIS_URL: redis://localhost:6379
+
+jobs:
+  facebook-hotfix-validation:
+    name: Facebook Messenger Hotfix Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ''
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --mount type=tmpfs,destination=/var/lib/postgresql/data
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: --entrypoint redis-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install pnpm dependencies
+        run: pnpm i
+
+      - name: Strip enterprise code
+        run: |
+          rm -rf enterprise
+          rm -rf spec/enterprise
+
+      - name: Prepare test database
+        run: |
+          bundle exec rake db:create
+          bundle exec rake db:schema:load
+
+      - name: Run RuboCop (Facebook hotfix scope)
+        run: |
+          bundle exec rubocop \
+            app/services/facebook/ \
+            app/builders/messages/facebook/ \
+            lib/tasks/optimia_facebook.rake
+
+      - name: Run Facebook hotfix specs
+        run: |
+          bundle exec rspec \
+            spec/services/facebook/ \
+            spec/builders/messages/facebook/ \
+            spec/jobs/send_reply_job_spec.rb \
+            spec/tasks/optimia_facebook_diagnose_spec.rb \
+            --format progress
+
+      - name: Upload rails log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: facebook-hotfix-rails-log
+          path: log/
+          retention-days: 3
+
+  facebook-hotfix-summary:
+    name: Facebook Messenger Hotfix Summary
+    runs-on: ubuntu-latest
+    needs:
+      - facebook-hotfix-validation
+    if: always()
+    steps:
+      - name: Write summary
+        run: |
+          {
+            echo "## Facebook Messenger Hotfix CI"
+            echo ""
+            echo "| Job | Result |"
+            echo "|-----|--------|"
+            echo "| Validation | ${{ needs.facebook-hotfix-validation.result }} |"
+            echo ""
+            echo "**Scope:** Facebook Messenger hotfix specs and scoped RuboCop only."
+            echo "**No images published. No deploy.**"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail if validation failed
+        if: needs.facebook-hotfix-validation.result != 'success'
+        run: exit 1

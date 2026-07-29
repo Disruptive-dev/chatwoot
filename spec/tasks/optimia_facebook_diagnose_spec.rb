@@ -2,6 +2,7 @@
 
 require 'rails_helper'
 
+# rubocop:disable RSpec/DescribeClass
 describe 'optimia:facebook:diagnose' do
   let(:account) { create(:account) }
   let(:facebook_channel) { create(:channel_facebook_page, account: account) }
@@ -9,6 +10,7 @@ describe 'optimia:facebook:diagnose' do
   let(:fb_object) { instance_double(Koala::Facebook::API) }
 
   before do
+    Rails.application.load_tasks
     allow(Koala::Facebook::API).to receive(:new).and_return(fb_object)
     allow(GlobalConfigService).to receive(:load).and_call_original
     allow(GlobalConfigService).to receive(:load).with('FACEBOOK_API_VERSION', 'v18.0').and_return('v18.0')
@@ -27,3 +29,4 @@ describe 'optimia:facebook:diagnose' do
     Rake::Task['optimia:facebook:diagnose'].reenable
   end
 end
+# rubocop:enable RSpec/DescribeClass

@@ -34,11 +34,11 @@ class Facebook::SendOnFacebookService < Base::SendOnChannelService
       return
     end
 
-    if parsed_result['message_id'].present?
-      message.update!(source_id: parsed_result['message_id'])
-      Messages::StatusUpdateService.new(message, 'sent').perform
-      log_event('facebook_message_send_succeeded', send_log_payload.merge(message_id: message.id))
-    end
+    return unless parsed_result['message_id'].present?
+
+    message.update!(source_id: parsed_result['message_id'])
+    Messages::StatusUpdateService.new(message, 'sent').perform
+    log_event('facebook_message_send_succeeded', send_log_payload.merge(message_id: message.id))
   end
 
   def deliver_message(delivery_params)

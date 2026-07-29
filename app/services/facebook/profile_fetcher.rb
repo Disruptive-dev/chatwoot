@@ -7,7 +7,7 @@ class Facebook::ProfileFetcher
   FALLBACK_NAME = 'John Doe'
   KNOWN_NON_BLOCKING_SUBCODES = [2_018_218].freeze
 
-  pattr_initialize [:channel!, :psid!, :account_id!, :inbox_id!, :outgoing_echo: false]
+  pattr_initialize [:channel!, :psid!, :account_id!, :inbox_id!, :outgoing_echo]
 
   def perform
     log_event('facebook_profile_lookup_started', base_log_payload)

@@ -2,6 +2,7 @@
 
 require 'rails_helper'
 
+# rubocop:disable RSpec/DescribeClass
 describe 'Facebook Messenger hotfix isolation' do
   it 'does not change WhatsApp send service payload builder' do
     whatsapp_file = Rails.root.join('app/services/whatsapp/send_on_whatsapp_service.rb').read
@@ -25,3 +26,4 @@ describe 'Facebook Messenger hotfix isolation' do
     expect(send_reply_file).to include("channel_name == 'Channel::FacebookPage'")
   end
 end
+# rubocop:enable RSpec/DescribeClass

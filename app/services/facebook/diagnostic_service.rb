@@ -3,7 +3,7 @@
 class Facebook::DiagnosticService
   include Facebook::GraphApiSupport
 
-  pattr_initialize [:inbox!, :psid: nil]
+  pattr_initialize [:inbox!, :psid]
 
   def perform
     channel = inbox.channel
