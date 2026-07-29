@@ -34,7 +34,7 @@ class Facebook::SendOnFacebookService < Base::SendOnChannelService
       return
     end
 
-    return unless parsed_result['message_id'].present?
+    return if parsed_result['message_id'].blank?
 
     message.update!(source_id: parsed_result['message_id'])
     Messages::StatusUpdateService.new(message, 'sent').perform
