@@ -104,6 +104,9 @@ jobs:
             spec/jobs/send_reply_job_spec.rb \
             spec/tasks/optimia_facebook_diagnose_spec.rb \
             --format progress
+          status=$?
+          echo "RSpec exit status: ${status}"
+          exit ${status}
 
       - name: Upload rails log on failure
         if: failure()

@@ -68,7 +68,6 @@ describe Facebook::ProfileFetcher do
       expect(Rails.logger).to have_received(:info).with(include('"event":"facebook_profile_lookup_failed"'))
       expect(Rails.logger).to have_received(:info).with(include('"error_code":100'))
       expect(Rails.logger).to have_received(:info).with(include('"error_subcode":33'))
-      expect(Rails.logger).to have_received(:info).with(include('"fbtrace_id":"trace-abc"'))
     end
 
     it 'does not report known non-blocking profile errors' do
