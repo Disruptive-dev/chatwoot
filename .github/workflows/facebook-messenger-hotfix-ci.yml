@@ -97,6 +97,7 @@ jobs:
 
       - name: Run Facebook hotfix specs
         run: |
+          set -euo pipefail
           bundle exec rspec \
             spec/services/facebook/ \
             spec/builders/messages/facebook/ \

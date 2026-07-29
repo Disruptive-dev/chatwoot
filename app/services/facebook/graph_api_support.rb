@@ -46,6 +46,17 @@ module Facebook::GraphApiSupport
 
     return error.message if error.respond_to?(:message) && error.message.is_a?(Hash)
 
+    embedded_error_hash(error)
+  end
+
+  def embedded_error_hash(error)
+    return unless error.respond_to?(:instance_variables)
+
+    error.instance_variables.each do |ivar|
+      value = error.instance_variable_get(ivar)
+      return value if value.is_a?(Hash) && value.key?('code')
+    end
+
     nil
   end
 end
