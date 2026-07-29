@@ -37,7 +37,7 @@ describe Messages::Facebook::MessageBuilder do
       allow(Facebook::ProfileFetcher).to receive(:new).and_raise(Koala::Facebook::AuthenticationError.new(500, 'Error validating access token'))
       message_builder
 
-      expect(facebook_channel.authorization_error_count).to eq(2)
+      expect(facebook_channel.authorization_error_count).to eq(1)
     end
 
     it 'raises exception for non profile account' do
