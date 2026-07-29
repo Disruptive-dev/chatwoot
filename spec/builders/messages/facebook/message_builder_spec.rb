@@ -14,14 +14,15 @@ describe Messages::Facebook::MessageBuilder do
 
   describe '#perform' do
     it 'creates contact and message for the facebook inbox' do
-      allow(Koala::Facebook::API).to receive(:new).and_return(fb_object)
-      allow(fb_object).to receive(:get_object).and_return(
-        {
-          first_name: 'Jane',
-          last_name: 'Dae',
-          account_id: facebook_channel.inbox.account_id,
-          profile_pic: 'https://chatwoot-assets.local/sample.png'
-        }.with_indifferent_access
+      allow(Facebook::ProfileFetcher).to receive(:new).and_return(
+        instance_double(
+          Facebook::ProfileFetcher,
+          perform: {
+            name: 'Jane Dae',
+            account_id: facebook_channel.inbox.account_id,
+            avatar_url: 'https://chatwoot-assets.local/sample.png'
+          }
+        )
       )
       message_builder
 
@@ -33,30 +34,47 @@ describe Messages::Facebook::MessageBuilder do
     end
 
     it 'increments channel authorization_error_count when error is thrown' do
-      allow(Koala::Facebook::API).to receive(:new).and_return(fb_object)
-      allow(fb_object).to receive(:get_object).and_raise(Koala::Facebook::AuthenticationError.new(500, 'Error validating access token'))
+      allow(Facebook::ProfileFetcher).to receive(:new).and_raise(Koala::Facebook::AuthenticationError.new(500, 'Error validating access token'))
       message_builder
 
       expect(facebook_channel.authorization_error_count).to eq(2)
     end
 
     it 'raises exception for non profile account' do
-      allow(Koala::Facebook::API).to receive(:new).and_return(fb_object)
-      allow(fb_object).to receive(:get_object).and_raise(Koala::Facebook::ClientError.new(400, '',
-                                                                                          {
-                                                                                            'type' => 'OAuthException',
-                                                                                            'message' => '(#100) No profile available for this user.',
-                                                                                            'error_subcode' => 2_018_218,
-                                                                                            'code' => 100
-                                                                                          }))
+      allow(Facebook::ProfileFetcher).to receive(:new).and_return(
+        instance_double(
+          Facebook::ProfileFetcher,
+          perform: {
+            name: Facebook::ProfileFetcher::FALLBACK_NAME,
+            account_id: facebook_channel.inbox.account_id,
+            avatar_url: nil
+          }
+        )
+      )
       message_builder
 
       contact = facebook_channel.inbox.contacts.first
-      # Refer: https://github.com/chatwoot/chatwoot/pull/3016 for this check
-      default_name = 'John Doe'
+      default_name = Facebook::ProfileFetcher::FALLBACK_NAME
 
       expect(facebook_channel.inbox.reload.contacts.count).to eq(1)
       expect(contact.name).to eq(default_name)
+    end
+
+    it 'does not duplicate contacts when profile lookup fails' do
+      allow(Facebook::ProfileFetcher).to receive(:new).and_return(
+        instance_double(
+          Facebook::ProfileFetcher,
+          perform: {
+            name: Facebook::ProfileFetcher::FALLBACK_NAME,
+            account_id: facebook_channel.inbox.account_id,
+            avatar_url: nil
+          }
+        )
+      )
+
+      2.times { described_class.new(incoming_fb_text_message, facebook_channel.inbox).perform }
+
+      expect(facebook_channel.inbox.reload.contacts.count).to eq(1)
     end
 
     context 'when lock to single conversation' do

@@ -1,4 +1,6 @@
 class Facebook::SendOnFacebookService < Base::SendOnChannelService
+  include Facebook::GraphApiSupport
+
   private
 
   def channel_class
@@ -14,43 +16,49 @@ class Facebook::SendOnFacebookService < Base::SendOnChannelService
       end
     end
   rescue Facebook::Messenger::FacebookError => e
-    # TODO : handle specific errors or else page will get disconnected
     handle_facebook_error(e)
+    log_send_failure(graph_error_metadata(e).merge(error_class: e.class.name, error_message: e.message))
     Messages::StatusUpdateService.new(message, 'failed', e.message).perform
   end
 
   def send_message_to_facebook(delivery_params)
+    log_event('facebook_message_send_started', send_log_payload)
+
     parsed_result = deliver_message(delivery_params)
     return if parsed_result.nil?
 
     if parsed_result['error'].present?
+      error_metadata = extract_response_error(parsed_result)
+      log_send_failure(error_metadata)
       Messages::StatusUpdateService.new(message, 'failed', external_error(parsed_result)).perform
-      Rails.logger.info "Facebook::SendOnFacebookService: Error sending message to Facebook : Page - #{channel.page_id} : #{parsed_result}"
+      return
     end
 
-    message.update!(source_id: parsed_result['message_id']) if parsed_result['message_id'].present?
+    if parsed_result['message_id'].present?
+      message.update!(source_id: parsed_result['message_id'])
+      Messages::StatusUpdateService.new(message, 'sent').perform
+      log_event('facebook_message_send_succeeded', send_log_payload.merge(message_id: message.id))
+    end
   end
 
   def deliver_message(delivery_params)
     result = Facebook::Messenger::Bot.deliver(delivery_params, page_id: channel.page_id)
     JSON.parse(result)
   rescue JSON::ParserError
+    log_send_failure(error_class: 'JSON::ParserError', error_message: 'invalid_json_response')
     Messages::StatusUpdateService.new(message, 'failed', 'Facebook was unable to process this request').perform
-    Rails.logger.error "Facebook::SendOnFacebookService: Error parsing JSON response from Facebook : Page - #{channel.page_id} : #{result}"
     nil
   rescue Net::OpenTimeout
+    log_send_failure(error_class: 'Net::OpenTimeout', error_message: 'timeout')
     Messages::StatusUpdateService.new(message, 'failed', 'Request timed out, please try again later').perform
-    Rails.logger.error "Facebook::SendOnFacebookService: Timeout error sending message to Facebook : Page - #{channel.page_id}"
     nil
   end
 
   def fb_text_message_params
-    {
+    Facebook::MessagingParamsBuilder.build(
       recipient: { id: contact.get_source_id(inbox.id) },
-      message: fb_text_message_payload,
-      messaging_type: 'MESSAGE_TAG',
-      tag: 'ACCOUNT_UPDATE'
-    }
+      message: fb_text_message_payload
+    )
   end
 
   def fb_text_message_payload
@@ -71,7 +79,6 @@ class Facebook::SendOnFacebookService < Base::SendOnChannelService
   end
 
   def external_error(response)
-    # https://developers.facebook.com/docs/graph-api/guides/error-handling/
     error_message = response['error']['message']
     error_code = response['error']['code']
 
@@ -79,7 +86,7 @@ class Facebook::SendOnFacebookService < Base::SendOnChannelService
   end
 
   def fb_attachment_message_params(attachment)
-    {
+    Facebook::MessagingParamsBuilder.build(
       recipient: { id: contact.get_source_id(inbox.id) },
       message: {
         attachment: {
@@ -88,10 +95,8 @@ class Facebook::SendOnFacebookService < Base::SendOnChannelService
             url: attachment.download_url
           }
         }
-      },
-      messaging_type: 'MESSAGE_TAG',
-      tag: 'ACCOUNT_UPDATE'
-    }
+      }
+    )
   end
 
   def attachment_type(attachment)
@@ -100,15 +105,34 @@ class Facebook::SendOnFacebookService < Base::SendOnChannelService
     'file'
   end
 
-  def sent_first_outgoing_message_after_24_hours?
-    # we can send max 1 message after 24 hour window
-    conversation.messages.outgoing.where('id > ?', conversation.last_incoming_message.id).count == 1
-  end
-
   def handle_facebook_error(exception)
-    # Refer: https://github.com/jgorset/facebook-messenger/blob/64fe1f5cef4c1e3fca295b205037f64dfebdbcab/lib/facebook/messenger/error.rb
     return unless exception.to_s.include?('The session has been invalidated') || exception.to_s.include?('Error validating access token')
 
     channel.authorization_error!
+  end
+
+  def send_log_payload
+    {
+      account_id: message.account_id,
+      inbox_id: inbox.id,
+      page_id: channel.page_id,
+      conversation_id: conversation.id,
+      message_id: message.id,
+      graph_api_version: api_version
+    }
+  end
+
+  def log_send_failure(metadata)
+    log_event('facebook_message_send_failed', send_log_payload.merge(metadata))
+  end
+
+  def extract_response_error(parsed_result)
+    error = parsed_result['error'] || {}
+    {
+      error_type: error['type'],
+      error_code: error['code'],
+      error_subcode: error['error_subcode'],
+      fbtrace_id: error['fbtrace_id']
+    }.compact
   end
 end
