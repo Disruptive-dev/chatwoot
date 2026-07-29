@@ -5,7 +5,21 @@
 
 ## [Unreleased]
 
-### Added (Sprint v0.2.1 — CI/CD Platform Cleanup)
+### Added (Facebook Messenger hotfix v0.2.2)
+
+- Hotfix Messenger: payload estándar con `messaging_type: RESPONSE` (sin `ACCOUNT_UPDATE`).
+- `Facebook::ProfileFetcher` con campos soportados y logs estructurados de lookup.
+- `Facebook::MessagingParamsBuilder` aislado para `Channel::FacebookPage`.
+- Rake `optimia:facebook:diagnose[inbox_id,psid]` (solo lectura, sin secretos).
+- Tests de regresión para WhatsApp, Evolution API, email y webhooks.
+
+### Fixed
+
+- Mensajes salientes Messenger rechazados con `Invalid parameter` por uso incorrecto de `MESSAGE_TAG` + `ACCOUNT_UPDATE`.
+- Contactos quedando como "John Doe" cuando falla lookup de perfil (error Graph 100/33) sin bloquear recepción.
+
+## [0.2.1] - pendiente merge CI/CD
+
 
 - Pipeline unificado: `optimia-ci.yml`, `optimia-build-staging.yml`, `optimia-build-production.yml`.
 - Documentación CI/CD en `docs/optimia/cicd/` (constitution, spec, decisions, plan, tasks, runbooks).

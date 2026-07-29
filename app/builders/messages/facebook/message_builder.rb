@@ -23,6 +23,7 @@ class Messages::Facebook::MessageBuilder < Messages::Messenger::MessageBuilder
 
     ActiveRecord::Base.transaction do
       build_contact_inbox
+      refresh_contact_name_if_needed
       build_message
     end
   rescue Koala::Facebook::AuthenticationError => e
@@ -118,40 +119,22 @@ class Messages::Facebook::MessageBuilder < Messages::Messenger::MessageBuilder
     }
   end
 
-  def process_contact_params_result(result)
-    {
-      name: "#{result['first_name'] || 'John'} #{result['last_name'] || 'Doe'}",
+  def contact_params
+    @contact_params ||= Facebook::ProfileFetcher.new(
+      channel: @inbox.channel,
+      psid: @sender_id,
       account_id: @inbox.account_id,
-      avatar_url: result['profile_pic']
-    }
+      inbox_id: @inbox.id,
+      outgoing_echo: @outgoing_echo
+    ).perform
   end
 
-  # rubocop:disable Metrics/AbcSize
-  # rubocop:disable Metrics/MethodLength
-  def contact_params
-    begin
-      k = Koala::Facebook::API.new(@inbox.channel.page_access_token) if @inbox.facebook?
-      result = k.get_object(@sender_id) || {}
-    rescue Koala::Facebook::AuthenticationError => e
-      Rails.logger.warn("Facebook authentication error for inbox: #{@inbox.id} with error: #{e.message}")
-      Rails.logger.error e
-      @inbox.channel.authorization_error!
-      raise
-    rescue Koala::Facebook::ClientError => e
-      result = {}
-      # OAuthException, code: 100, error_subcode: 2018218, message: (#100) No profile available for this user
-      # We don't need to capture this error as we don't care about contact params in case of echo messages
-      if e.message.include?('2018218')
-        Rails.logger.warn e
-      else
-        ChatwootExceptionTracker.new(e, account: @inbox.account).capture_exception unless @outgoing_echo
-      end
-    rescue StandardError => e
-      result = {}
-      ChatwootExceptionTracker.new(e, account: @inbox.account).capture_exception
-    end
-    process_contact_params_result(result)
+  def refresh_contact_name_if_needed
+    contact = @contact_inbox.contact
+    return if contact_params[:name].blank?
+    return if contact_params[:name] == Facebook::ProfileFetcher::FALLBACK_NAME
+    return unless contact.name == Facebook::ProfileFetcher::FALLBACK_NAME
+
+    contact.update!(name: contact_params[:name])
   end
-  # rubocop:enable Metrics/AbcSize
-  # rubocop:enable Metrics/MethodLength
 end
