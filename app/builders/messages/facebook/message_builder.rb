@@ -136,8 +136,6 @@ class Messages::Facebook::MessageBuilder < Messages::Messenger::MessageBuilder
     contact.update!(name: new_name)
   end
 
-  # rubocop:disable Metrics/AbcSize
-  # rubocop:disable Metrics/MethodLength
   def contact_params
     @contact_params ||= begin
       result = fetch_facebook_profile_result
