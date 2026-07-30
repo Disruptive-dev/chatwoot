@@ -1,0 +1,53 @@
+name: OptimiA Deploy Production (EasyPanel)
+
+# Manual deploy via EasyPanel deploy webhooks (secrets must be configured in repo).
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'GHCR image tag (e.g. staging-cw-4.10.1-optimia-0.1.11)'
+        required: true
+      confirm:
+        description: 'Type DEPLOY_OPTIMIA to confirm'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy web and sidekiq
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "DEPLOY_OPTIMIA" ]; then
+            echo "::error::confirm must be DEPLOY_OPTIMIA"
+            exit 1
+          fi
+
+      - name: Deploy Sidekiq (first)
+        env:
+          WEBHOOK_URL: ${{ secrets.OPTIMIA_EASYPANEL_DEPLOY_WEBHOOK_SIDEKIQ }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::error::OPTIMIA_EASYPANEL_DEPLOY_WEBHOOK_SIDEKIQ secret is not set"
+            exit 1
+          fi
+          curl -fsS -X POST "$WEBHOOK_URL"
+
+      - name: Deploy Web
+        env:
+          WEBHOOK_URL: ${{ secrets.OPTIMIA_EASYPANEL_DEPLOY_WEBHOOK_WEB }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "::error::OPTIMIA_EASYPANEL_DEPLOY_WEBHOOK_WEB secret is not set"
+            exit 1
+          fi
+          curl -fsS -X POST "$WEBHOOK_URL"
+
+      - name: Summary
+        run: |
+          echo "Triggered EasyPanel deploy for image tag: ${{ inputs.image_tag }}"
+          echo "Verify digest on web and sidekiq services after deploy completes."
