@@ -40,6 +40,46 @@ describe Messages::Facebook::MessageBuilder do
       expect(facebook_channel.authorization_error_count).to eq(1)
     end
 
+    it 'updates legacy John Doe contacts to Facebook User on a new message' do
+      contact = create(:contact, name: Facebook::ContactNameResolver::LEGACY_FALLBACK_CONTACT_NAME, account: facebook_channel.account)
+      create(:contact_inbox, contact: contact, inbox: facebook_channel.inbox, source_id: incoming_fb_text_message.sender_id)
+
+      allow(Facebook::ProfileFetcher).to receive(:new).and_return(
+        instance_double(
+          Facebook::ProfileFetcher,
+          perform: {
+            name: Facebook::ProfileFetcher::FALLBACK_NAME,
+            account_id: facebook_channel.inbox.account_id,
+            avatar_url: nil
+          }
+        )
+      )
+
+      message_builder
+
+      expect(contact.reload.name).to eq(Facebook::ContactNameResolver::DEFAULT_FACEBOOK_CONTACT_NAME)
+    end
+
+    it 'does not overwrite contacts that already have a real name' do
+      contact = create(:contact, name: 'Jane Real', account: facebook_channel.account)
+      create(:contact_inbox, contact: contact, inbox: facebook_channel.inbox, source_id: incoming_fb_text_message.sender_id)
+
+      allow(Facebook::ProfileFetcher).to receive(:new).and_return(
+        instance_double(
+          Facebook::ProfileFetcher,
+          perform: {
+            name: 'Other Person',
+            account_id: facebook_channel.inbox.account_id,
+            avatar_url: nil
+          }
+        )
+      )
+
+      message_builder
+
+      expect(contact.reload.name).to eq('Jane Real')
+    end
+
     it 'raises exception for non profile account' do
       allow(Facebook::ProfileFetcher).to receive(:new).and_return(
         instance_double(

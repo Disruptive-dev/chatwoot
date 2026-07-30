@@ -14,6 +14,8 @@ on:
   push:
     branches:
       - 'cursor/facebook-messenger-hotfix-41ec'
+      - 'cursor/facebook-user-fallback-6b0e'
+      - 'cursor/facebook-user-fallback-merge-6b0e'
   workflow_dispatch:
 
 permissions:

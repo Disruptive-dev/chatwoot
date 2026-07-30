@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-07-30
+
+### Fixed
+
+- Replaced the Facebook Messenger missing-profile fallback name "John Doe" with "Facebook User".
+- Preserved real profile names whenever Meta returns valid user data.
+- Added optional rake task `optimia:facebook:rename_legacy_fallback_contacts` to rename existing Facebook contacts still named "John Doe".
+
 ### Added (Facebook Messenger hotfix v0.2.2)
 
 - Hotfix Messenger: payload estándar con `messaging_type: RESPONSE` (sin `ACCOUNT_UPDATE`).

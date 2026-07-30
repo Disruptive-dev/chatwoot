@@ -46,6 +46,18 @@ describe Facebook::ProfileFetcher do
       expect(Rails.logger).to have_received(:info).with(include('"event":"facebook_profile_lookup_succeeded"'))
     end
 
+    it 'returns first_name when only first_name is present' do
+      allow(fb_object).to receive(:get_object).and_return({ 'first_name' => 'Jane' })
+
+      expect(fetcher.perform[:name]).to eq('Jane')
+    end
+
+    it 'returns Facebook User for empty profile fields' do
+      allow(fb_object).to receive(:get_object).and_return({ 'first_name' => '', 'last_name' => '   ', 'name' => nil })
+
+      expect(fetcher.perform[:name]).to eq(Facebook::ContactNameResolver::DEFAULT_FACEBOOK_CONTACT_NAME)
+    end
+
     it 'falls back without blocking when Graph returns error code 100' do
       allow(fb_object).to receive(:get_object).and_raise(
         Koala::Facebook::ClientError.new(

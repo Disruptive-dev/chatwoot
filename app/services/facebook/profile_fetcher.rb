@@ -4,7 +4,7 @@ class Facebook::ProfileFetcher
   include Facebook::GraphApiSupport
 
   PROFILE_FIELDS = 'first_name,last_name,name'
-  FALLBACK_NAME = 'John Doe'
+  FALLBACK_NAME = Facebook::ContactNameResolver::DEFAULT_FACEBOOK_CONTACT_NAME
   KNOWN_NON_BLOCKING_SUBCODES = [2_018_218].freeze
 
   pattr_initialize [:channel!, :psid!, :account_id!, :inbox_id!, :outgoing_echo]
@@ -49,9 +49,7 @@ class Facebook::ProfileFetcher
   end
 
   def contact_name(result)
-    full_name = [result['first_name'], result['last_name']].compact_blank.join(' ')
-    full_name = result['name'] if full_name.blank?
-    full_name.presence || FALLBACK_NAME
+    Facebook::ContactNameResolver.resolve(result)
   end
 
   def page_token_present?
