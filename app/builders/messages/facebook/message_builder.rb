@@ -164,6 +164,4 @@ class Messages::Facebook::MessageBuilder < Messages::Messenger::MessageBuilder
     ChatwootExceptionTracker.new(e, account: @inbox.account).capture_exception
     {}
   end
-  # rubocop:enable Metrics/AbcSize
-  # rubocop:enable Metrics/MethodLength
 end
