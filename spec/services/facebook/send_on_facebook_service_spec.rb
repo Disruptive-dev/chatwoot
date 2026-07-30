@@ -4,7 +4,9 @@ describe Facebook::SendOnFacebookService do
   subject(:send_reply_service) { described_class.new(message: message) }
 
   before do
-    InstallationConfig.where(name: 'ENABLE_MESSENGER_CHANNEL_HUMAN_AGENT').delete_all
+    allow(GlobalConfig).to receive(:get).and_call_original
+    allow(GlobalConfig).to receive(:get).with('ENABLE_MESSENGER_CHANNEL_HUMAN_AGENT')
+                                         .and_return({ 'ENABLE_MESSENGER_CHANNEL_HUMAN_AGENT' => false })
     allow(Facebook::Messenger::Subscriptions).to receive(:subscribe).and_return(true)
     allow(bot).to receive(:deliver).and_return({ recipient_id: '1008372609250235', message_id: 'mid.1456970487936:c34767dfe57ee6e339' }.to_json)
     create(:message, message_type: :incoming, inbox: facebook_inbox, account: account, conversation: conversation)
