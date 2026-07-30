@@ -153,3 +153,23 @@
 ---
 
 <!-- Próximas entradas se agregan debajo, sin modificar las anteriores -->
+
+## Hotfix 0.1.11 — Facebook Messenger envío saliente
+
+| Campo | Valor |
+|-------|-------|
+| **Versión** | OptimiA 0.1.11 |
+| **Rama** | `cursor/facebook-user-fallback-6b0e` (merge PR #8) |
+| **Commit** | `2727d7c136e9335f871ea52e8d03c50c094e5d58` |
+| **Tags** | `staging-cw-4.10.1-optimia-0.1.11`, `optimia/v0.1.11` |
+| **Imagen** | `ghcr.io/pablo-paez-dev/chatwoot:staging-cw-4.10.1-optimia-0.1.11` |
+| **Digest** | `sha256:87a1f86c5420341526a63d7438827acc3a342c574a64554bbaacf3f31dce4f94` |
+| **CI** | Facebook Messenger Hotfix CI — success |
+| **Deploy EasyPanel** | Pendiente (sin credenciales/API en agente) |
+| **Migraciones** | No |
+
+### Próximo paso exacto
+
+1. EasyPanel prod: actualizar `chatwoot-sidekiq` y luego `chatwoot` al tag/digest 0.1.11.
+2. Smoke: inbox 47 — responder en Messenger y confirmar `status: sent`.
+
