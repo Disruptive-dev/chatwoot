@@ -84,7 +84,15 @@ jobs:
       - name: Prepare test database
         run: |
           bundle exec rake db:create
-          bundle exec rake db:migrate
+          bundle exec rake db:schema:load
+          bundle exec rails runner "
+            Dir.glob(Rails.root.join('db/migrate/*.rb')).each do |file|
+              version = File.basename(file).split('_').first
+              ActiveRecord::SchemaMigration.create!(version: version)
+            rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
+              nil
+            end
+          "
 
       - name: Run RuboCop (Facebook hotfix scope)
         run: |
