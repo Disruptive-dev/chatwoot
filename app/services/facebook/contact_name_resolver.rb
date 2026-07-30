@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Facebook::ContactNameResolver
-  DEFAULT_FACEBOOK_CONTACT_NAME = 'Facebook User'.freeze
-  LEGACY_FALLBACK_CONTACT_NAME = 'John Doe'.freeze
+  DEFAULT_FACEBOOK_CONTACT_NAME = 'Facebook User'
+  LEGACY_FALLBACK_CONTACT_NAME = 'John Doe'
 
   module_function
 
