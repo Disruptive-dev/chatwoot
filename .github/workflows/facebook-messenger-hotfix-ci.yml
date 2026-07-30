@@ -6,6 +6,7 @@ on:
       - 'app/services/facebook/**'
       - 'app/builders/messages/facebook/**'
       - 'lib/tasks/optimia_facebook.rake'
+      - 'lib/tasks/optimia_facebook_rename.rake'
       - 'spec/services/facebook/**'
       - 'spec/builders/messages/facebook/**'
       - 'spec/jobs/send_reply_job_spec.rb'
@@ -14,6 +15,8 @@ on:
   push:
     branches:
       - 'cursor/facebook-messenger-hotfix-41ec'
+      - 'cursor/facebook-user-fallback-6b0e'
+      - 'cursor/facebook-user-fallback-merge-6b0e'
   workflow_dispatch:
 
 permissions:
@@ -93,7 +96,8 @@ jobs:
           bundle exec rubocop \
             app/services/facebook/ \
             app/builders/messages/facebook/ \
-            lib/tasks/optimia_facebook.rake
+            lib/tasks/optimia_facebook.rake \
+            lib/tasks/optimia_facebook_rename.rake
 
       - name: Run Facebook hotfix specs
         run: |

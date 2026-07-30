@@ -131,10 +131,10 @@ class Messages::Facebook::MessageBuilder < Messages::Messenger::MessageBuilder
 
   def refresh_contact_name_if_needed
     contact = @contact_inbox.contact
-    return if contact_params[:name].blank?
-    return if contact_params[:name] == Facebook::ProfileFetcher::FALLBACK_NAME
-    return unless contact.name == Facebook::ProfileFetcher::FALLBACK_NAME
+    new_name = contact_params[:name]
+    return if new_name.blank? || new_name == contact.name
+    return unless Facebook::ContactNameResolver.refreshable_fallback?(contact.name)
 
-    contact.update!(name: contact_params[:name])
+    contact.update!(name: new_name)
   end
 end
