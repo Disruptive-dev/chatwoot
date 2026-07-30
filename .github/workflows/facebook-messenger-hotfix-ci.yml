@@ -6,6 +6,7 @@ on:
       - 'app/services/facebook/**'
       - 'app/builders/messages/facebook/**'
       - 'lib/tasks/optimia_facebook.rake'
+      - 'lib/tasks/optimia_facebook_rename.rake'
       - 'spec/services/facebook/**'
       - 'spec/builders/messages/facebook/**'
       - 'spec/jobs/send_reply_job_spec.rb'
@@ -95,7 +96,8 @@ jobs:
           bundle exec rubocop \
             app/services/facebook/ \
             app/builders/messages/facebook/ \
-            lib/tasks/optimia_facebook.rake
+            lib/tasks/optimia_facebook.rake \
+            lib/tasks/optimia_facebook_rename.rake
 
       - name: Run Facebook hotfix specs
         run: |
