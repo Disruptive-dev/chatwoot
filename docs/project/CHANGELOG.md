@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+## [0.1.11] — 2026-07-30
+
+### Fixed
+
+- Restored Facebook Messenger outbound delivery for agent replies within the standard messaging window by sending `messaging_type: RESPONSE` instead of `MESSAGE_TAG` with `ACCOUNT_UPDATE`.
+- Added `Facebook::MessagingParamsBuilder` and structured Graph API send logging (masked PSID, error metadata) without exposing tokens.
+
 ## [0.1.10] — 2026-07-30
 
 ### Fixed

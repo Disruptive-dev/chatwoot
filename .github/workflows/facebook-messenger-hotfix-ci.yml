@@ -12,6 +12,7 @@ on:
   push:
     branches:
       - 'cursor/facebook-user-fallback-6b0e'
+      - 'cursor/facebook-messenger-send-fix-6b0e'
   workflow_dispatch:
 
 permissions:

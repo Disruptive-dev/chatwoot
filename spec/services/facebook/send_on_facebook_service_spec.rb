@@ -49,7 +49,11 @@ describe Facebook::SendOnFacebookService do
       it 'if message is sent from chatwoot and is outgoing' do
         message = create(:message, message_type: 'outgoing', inbox: facebook_inbox, account: account, conversation: conversation)
         described_class.new(message: message).perform
-        expect(bot).to have_received(:deliver)
+        expect(bot).to have_received(:deliver).with(hash_including(
+                                                      recipient: { id: contact_inbox.source_id },
+                                                      messaging_type: 'RESPONSE'
+                                                    ), { page_id: facebook_channel.page_id })
+        expect(bot).to have_received(:deliver).with(hash_excluding(tag: 'ACCOUNT_UPDATE'), anything)
       end
 
       it 'raise and exception to validate access token' do
@@ -72,8 +76,7 @@ describe Facebook::SendOnFacebookService do
         expect(bot).to have_received(:deliver).with({
                                                       recipient: { id: contact_inbox.source_id },
                                                       message: { text: message.content },
-                                                      messaging_type: 'MESSAGE_TAG',
-                                                      tag: 'ACCOUNT_UPDATE'
+                                                      messaging_type: 'RESPONSE'
                                                     }, { page_id: facebook_channel.page_id })
         expect(bot).to have_received(:deliver).with({
                                                       recipient: { id: contact_inbox.source_id },
@@ -85,8 +88,7 @@ describe Facebook::SendOnFacebookService do
                                                           }
                                                         }
                                                       },
-                                                      messaging_type: 'MESSAGE_TAG',
-                                                      tag: 'ACCOUNT_UPDATE'
+                                                      messaging_type: 'RESPONSE'
                                                     }, { page_id: facebook_channel.page_id })
       end
 
@@ -159,11 +161,35 @@ describe Facebook::SendOnFacebookService do
           message_id: 'mid.1456970487936:c34767dfe57ee6e339'
         }.to_json
         allow(bot).to receive(:deliver).and_return(success_response)
+        allow(Rails.logger).to receive(:info)
 
         described_class.new(message: message).perform
 
         expect(message.reload.source_id).to eq('mid.1456970487936:c34767dfe57ee6e339')
-        expect(message.status).not_to eq('failed')
+        expect(message.status).to eq('sent')
+        expect(Rails.logger).to have_received(:info).with(include('"event":"facebook_message_send_succeeded"'))
+      end
+
+      it 'logs structured failure metadata without secrets' do
+        error_response = {
+          error: {
+            message: 'Invalid parameter',
+            type: 'OAuthException',
+            code: 100,
+            error_subcode: 33,
+            fbtrace_id: 'trace-xyz'
+          }
+        }.to_json
+        allow(bot).to receive(:deliver).and_return(error_response)
+        allow(Rails.logger).to receive(:info)
+
+        described_class.new(message: message).perform
+
+        expect(message.reload.status).to eq('failed')
+        expect(message.external_error).to eq('100 - Invalid parameter')
+        expect(Rails.logger).to have_received(:info).with(include('"event":"facebook_message_send_failed"'))
+        expect(Rails.logger).to have_received(:info).with(include('"fbtrace_id":"trace-xyz"'))
+        expect(Rails.logger).not_to have_received(:info).with(include(facebook_channel.page_access_token))
       end
     end
 
@@ -189,8 +215,7 @@ describe Facebook::SendOnFacebookService do
                                                           { content_type: 'text', payload: 'text 2', title: 'text 2' }
                                                         ]
                                                       },
-                                                      messaging_type: 'MESSAGE_TAG',
-                                                      tag: 'ACCOUNT_UPDATE'
+                                                      messaging_type: 'RESPONSE'
                                                     }, { page_id: facebook_channel.page_id })
       end
     end
