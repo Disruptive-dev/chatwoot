@@ -40,23 +40,70 @@ describe Messages::Facebook::MessageBuilder do
       expect(facebook_channel.authorization_error_count).to eq(2)
     end
 
-    it 'raises exception for non profile account' do
+    it 'uses Facebook User when profile lookup fails with Graph error 100/33' do
       allow(Koala::Facebook::API).to receive(:new).and_return(fb_object)
-      allow(fb_object).to receive(:get_object).and_raise(Koala::Facebook::ClientError.new(400, '',
-                                                                                          {
-                                                                                            'type' => 'OAuthException',
-                                                                                            'message' => '(#100) No profile available for this user.',
-                                                                                            'error_subcode' => 2_018_218,
-                                                                                            'code' => 100
-                                                                                          }))
+      allow(fb_object).to receive(:get_object).and_raise(
+        Koala::Facebook::ClientError.new(
+          400,
+          '',
+          {
+            'type' => 'GraphMethodException',
+            'message' => 'Unsupported get request.',
+            'error_subcode' => 33,
+            'code' => 100
+          }
+        )
+      )
+
+      message_builder
+
+      expect(facebook_channel.inbox.reload.contacts.first.name).to eq(Facebook::ContactNameResolver::DEFAULT_FACEBOOK_CONTACT_NAME)
+    end
+
+    it 'uses Facebook User when profile is unavailable' do
+      allow(Koala::Facebook::API).to receive(:new).and_return(fb_object)
+      allow(fb_object).to receive(:get_object).and_raise(
+        Koala::Facebook::ClientError.new(
+          400,
+          '',
+          {
+            'type' => 'OAuthException',
+            'message' => '(#100) No profile available for this user.',
+            'error_subcode' => 2_018_218,
+            'code' => 100
+          }
+        )
+      )
+
       message_builder
 
       contact = facebook_channel.inbox.contacts.first
-      # Refer: https://github.com/chatwoot/chatwoot/pull/3016 for this check
-      default_name = 'John Doe'
-
       expect(facebook_channel.inbox.reload.contacts.count).to eq(1)
-      expect(contact.name).to eq(default_name)
+      expect(contact.name).to eq(Facebook::ContactNameResolver::DEFAULT_FACEBOOK_CONTACT_NAME)
+    end
+
+    it 'updates legacy John Doe contacts to Facebook User on a new message' do
+      contact = create(:contact, name: Facebook::ContactNameResolver::LEGACY_FALLBACK_CONTACT_NAME, account: facebook_channel.account)
+      create(:contact_inbox, contact: contact, inbox: facebook_channel.inbox, source_id: incoming_fb_text_message.sender_id)
+
+      allow(Koala::Facebook::API).to receive(:new).and_return(fb_object)
+      allow(fb_object).to receive(:get_object).and_return({})
+
+      message_builder
+
+      expect(contact.reload.name).to eq(Facebook::ContactNameResolver::DEFAULT_FACEBOOK_CONTACT_NAME)
+    end
+
+    it 'does not overwrite contacts that already have a real name' do
+      contact = create(:contact, name: 'Jane Real', account: facebook_channel.account)
+      create(:contact_inbox, contact: contact, inbox: facebook_channel.inbox, source_id: incoming_fb_text_message.sender_id)
+
+      allow(Koala::Facebook::API).to receive(:new).and_return(fb_object)
+      allow(fb_object).to receive(:get_object).and_return({ 'first_name' => 'Other', 'last_name' => 'Person' })
+
+      message_builder
+
+      expect(contact.reload.name).to eq('Jane Real')
     end
 
     context 'when lock to single conversation' do

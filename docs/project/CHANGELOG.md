@@ -5,6 +5,16 @@
 
 ## [Unreleased]
 
+## [0.1.10] — 2026-07-30
+
+### Fixed
+
+- Replaced the Facebook Messenger missing-profile fallback name "John Doe" with "Facebook User".
+- Preserved real profile names whenever Meta returns valid user data.
+- Added optional rake task `optimia:facebook:rename_legacy_fallback_contacts` to rename existing Facebook contacts still named "John Doe".
+
+---
+
 ### Added (Sprint 2 — Channel Manager + WhatsApp Connection Center)
 
 - Modelo `OptimiaChannelConnection` con máquina de estados y auditoría.
