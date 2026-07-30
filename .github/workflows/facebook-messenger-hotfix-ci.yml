@@ -84,7 +84,7 @@ jobs:
       - name: Prepare test database
         run: |
           bundle exec rake db:create
-          bundle exec rake db:schema:load
+          bundle exec rake db:migrate
 
       - name: Run RuboCop (Facebook hotfix scope)
         run: |
