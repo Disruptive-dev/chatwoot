@@ -5,7 +5,7 @@ set -euo pipefail
 OPTIMIA_VERSION="${1:-}"
 CHATWOOT_VERSION="${2:-4.10.1}"
 COMMIT_SHA="${3:-$(git rev-parse HEAD 2>/dev/null || echo unknown)}"
-REGISTRY="${OPTIMIA_GHCR_REGISTRY:-ghcr.io/pablo-paez-dev/chatwoot}"
+REGISTRY="${OPTIMIA_GHCR_REGISTRY:-ghcr.io/disruptive-dev/chatwoot}"
 ENVIRONMENT="${4:-staging}"
 
 usage() {
