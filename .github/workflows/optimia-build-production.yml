@@ -38,7 +38,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  DEFAULT_REGISTRY: ghcr.io/pablo-paez-dev/chatwoot
+  DEFAULT_REGISTRY: ghcr.io/disruptive-dev/chatwoot
   DEFAULT_FRONTEND_URL: https://app.optimia.spectra-metrics.com
   PRODUCTION_TAG_PATTERN: '^cw-[0-9]+\.[0-9]+\.[0-9]+-optimia-[0-9]+\.[0-9]+\.[0-9]+$'
 
