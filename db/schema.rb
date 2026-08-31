@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_07_24_210000) do
+ActiveRecord::Schema[7.1].define(version: 2026_08_31_120000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1141,6 +1141,78 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_24_210000) do
     t.index ["version"], name: "index_optimia_deployment_records_on_version"
   end
 
+  create_table "optimia_facebook_comment_events", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "channel_facebook_page_id", null: false
+    t.string "idempotency_key", null: false
+    t.string "correlation_id", null: false
+    t.string "page_id", null: false
+    t.string "post_id"
+    t.string "comment_id", null: false
+    t.string "parent_id"
+    t.string "sender_id"
+    t.text "message_text"
+    t.string "event_type", default: "comment", null: false
+    t.string "status", default: "received", null: false
+    t.string "property_id"
+    t.string "intent"
+    t.string "response_mode"
+    t.string "response_comment_id"
+    t.string "decision"
+    t.jsonb "metadata", default: {}, null: false
+    t.text "error_message"
+    t.datetime "processed_at"
+    t.bigint "conversation_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "status"], name: "index_optimia_facebook_comment_events_on_account_id_and_status"
+    t.index ["account_id"], name: "index_optimia_facebook_comment_events_on_account_id"
+    t.index ["channel_facebook_page_id"], name: "idx_on_channel_facebook_page_id_ce398dc71c"
+    t.index ["comment_id"], name: "index_optimia_facebook_comment_events_on_comment_id"
+    t.index ["conversation_id"], name: "index_optimia_facebook_comment_events_on_conversation_id"
+    t.index ["correlation_id"], name: "index_optimia_facebook_comment_events_on_correlation_id"
+    t.index ["idempotency_key"], name: "index_optimia_facebook_comment_events_on_idempotency_key", unique: true
+  end
+
+  create_table "optimia_facebook_comment_leads", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "optimia_facebook_comment_event_id", null: false
+    t.string "idempotency_key", null: false
+    t.string "channel", default: "facebook", null: false
+    t.string "source", default: "facebook_comment", null: false
+    t.string "page_id", null: false
+    t.string "post_id"
+    t.string "comment_id", null: false
+    t.string "property_id"
+    t.string "intent"
+    t.jsonb "contact_identifiers", default: {}, null: false
+    t.string "source_message_id"
+    t.float "confidence"
+    t.datetime "captured_at", null: false
+    t.bigint "conversation_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "comment_id"], name: "idx_on_account_id_comment_id_f3a1c7f80f"
+    t.index ["account_id"], name: "index_optimia_facebook_comment_leads_on_account_id"
+    t.index ["conversation_id"], name: "index_optimia_facebook_comment_leads_on_conversation_id"
+    t.index ["idempotency_key"], name: "index_optimia_facebook_comment_leads_on_idempotency_key", unique: true
+    t.index ["optimia_facebook_comment_event_id"], name: "index_optimia_fb_comment_leads_on_event_id"
+  end
+
+  create_table "optimia_facebook_post_properties", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "page_id", null: false
+    t.string "post_id", null: false
+    t.string "property_id", null: false
+    t.string "source", default: "manual", null: false
+    t.float "confidence", default: 1.0, null: false
+    t.jsonb "known_facts", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "post_id"], name: "index_optimia_fb_post_properties_on_account_and_post", unique: true
+    t.index ["account_id"], name: "index_optimia_facebook_post_properties_on_account_id"
+  end
+
   create_table "optimia_technical_alerts", force: :cascade do |t|
     t.string "alert_type", null: false
     t.string "component", null: false
@@ -1457,6 +1529,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_07_24_210000) do
   add_foreign_key "optimia_channel_connections", "inboxes"
   add_foreign_key "optimia_channel_connections", "users", column: "created_by_id"
   add_foreign_key "optimia_channel_connections", "users", column: "updated_by_id"
+  add_foreign_key "optimia_facebook_comment_events", "accounts"
+  add_foreign_key "optimia_facebook_comment_events", "channel_facebook_pages"
+  add_foreign_key "optimia_facebook_comment_events", "conversations"
+  add_foreign_key "optimia_facebook_comment_leads", "accounts"
+  add_foreign_key "optimia_facebook_comment_leads", "conversations"
+  add_foreign_key "optimia_facebook_comment_leads", "optimia_facebook_comment_events"
+  add_foreign_key "optimia_facebook_post_properties", "accounts"
   add_foreign_key "optimia_technical_timeline_events", "accounts"
   add_foreign_key "optimia_technical_timeline_events", "optimia_channel_connections"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).

@@ -50,13 +50,22 @@ class Channel::FacebookPage < ApplicationRecord
     # ref https://developers.facebook.com/docs/messenger-platform/reference/webhook-events
     Facebook::Messenger::Subscriptions.subscribe(
       access_token: page_access_token,
-      subscribed_fields: %w[
-        messages message_deliveries message_echoes message_reads standby messaging_handovers
-      ]
+      subscribed_fields: messenger_subscribed_fields
     )
+    subscribe_feed_if_enabled
   rescue StandardError => e
     Rails.logger.debug { "Rescued: #{e.inspect}" }
     true
+  end
+
+  def subscribe_feed_if_enabled
+    Optimia::FacebookComments::FeedSubscriptionService.new(channel: self).perform
+  end
+
+  def messenger_subscribed_fields
+    %w[
+      messages message_deliveries message_echoes message_reads standby messaging_handovers
+    ]
   end
 
   def unsubscribe
