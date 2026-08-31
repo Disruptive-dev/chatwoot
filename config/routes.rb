@@ -581,6 +581,8 @@ Rails.application.routes.draw do
   # ----------------------------------------------------------------------
   # Routes for channel integrations
   mount Facebook::Messenger::Server, at: 'bot'
+  get 'webhooks/facebook', to: 'webhooks/facebook_page#verify'
+  post 'webhooks/facebook', to: 'webhooks/facebook_page#events'
   get 'webhooks/twitter', to: 'api/v1/webhooks#twitter_crc'
   post 'webhooks/twitter', to: 'api/v1/webhooks#twitter_events'
   post 'webhooks/line/:line_channel_id', to: 'webhooks/line#process_payload'
